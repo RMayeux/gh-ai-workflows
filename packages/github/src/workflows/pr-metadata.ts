@@ -50,10 +50,11 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
   const definition = await loader.loadWithFallback('pr-metadata', promptVersion);
   
   const prompt = PromptEngine.render(definition, {
-    __CHANGED_FILES__: context.files.join('\\n'),
-    __CODE_DIFF__: context.diff,
-    __PR_TITLE__: context.details.title,
-    __PR_BODY__: context.details.body ?? '',
+    registry: '',
+    changed_files: context.files.join('\\n'),
+    code_diff: context.diff,
+    pr_title: context.details.title,
+    pr_body: context.details.body ?? '',
   });
 
   // 4. Generate Structured Output

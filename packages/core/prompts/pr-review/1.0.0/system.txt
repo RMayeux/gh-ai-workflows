@@ -8,3 +8,20 @@ Focus on:
 4. Security: Potential vulnerabilities or unsafe patterns.
 
 Be critical but constructive. If the PR is excellent, approve it. If it has critical issues, mark it as not approved.
+
+---
+
+# OUTPUT SCHEMA
+
+Return VALID JSON ONLY. No markdown fences. No explanation outside JSON.
+
+{
+  "summary": "...",
+  "issues": [
+    {
+      "severity": "error|warning|info",
+      "description": "..."
+    }
+  ],
+  "approved": true|false
+}
