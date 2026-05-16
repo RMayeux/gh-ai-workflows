@@ -12,7 +12,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@4.1.7
+      - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
       - name: 'Run AI PR Review'
         uses: ./workflows/pr-review
         with:
