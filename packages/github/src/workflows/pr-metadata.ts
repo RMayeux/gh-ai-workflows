@@ -67,7 +67,7 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
     // 4. Generate Structured Output
     Logger.log(`Step 4: Generating metadata using ${llm}:${model}...`);
     registerAllProviders();
-    const provider = ProviderRegistry.create(llm, { apiKey });
+    const provider = ProviderRegistry.create(llm, { apiKey, model });
 
     const generationResult = await generateStructured(provider, PRMetadataSchema, {
       prompt: prompt.user,
