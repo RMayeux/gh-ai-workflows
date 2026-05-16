@@ -1,4 +1,4 @@
-import { GitHubClient } from '@gh-ai-workflows/github';
+import { GitHubClient, ContextBuilder } from '@gh-ai-workflows/github';
 import { generateStructured, ProviderRegistry } from '@gh-ai-workflows/core';
 import { registerAllProviders } from '@gh-ai-workflows/providers';
 import { PRReviewSchema } from '@gh-ai-workflows/validators';
@@ -42,9 +42,10 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     const gh = injectedClient || new GitHubClient(githubToken);
     
     // 2. Gather Context
-    Logger.log('Step 2: Gathering PR details...');
-    const prDetails = await gh.getPRDetails(owner, repo, pullNumber).catch(err => {
-      throw new Error(`Failed to fetch PR details: ${err.message}`);
+    Logger.log('Step 2: Gathering PR context...');
+    const contextBuilder = new ContextBuilder(gh);
+    const context = await contextBuilder.buildPRContext(owner, repo, pullNumber).catch(err => {
+      throw new Error(`Failed to gather PR context: ${err.message}`);
     });
 
     // 3. Load and Render Prompt
@@ -55,8 +56,10 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     });
     
     const prompt = PromptEngine.render(definition, {
-      pr_title: prDetails.title,
-      pr_body: prDetails.body ?? '',
+      pr_title: context.details.title,
+      pr_body: context.details.body ?? '',
+      changed_files: context.files.join(', '),
+      code_diff: context.diff,
     });
 
     // 4. Generate Structured Review
