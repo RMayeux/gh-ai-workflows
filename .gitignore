@@ -1,0 +1,64 @@
+# Dependency directories
+node_modules/
+jspm_dependencies/
+
+# Turbo
+.turbo/
+
+# Build outputs
+dist/
+out/
+build/
+*.tsbuildinfo
+
+# Log files
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+secrets.json
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDEs and Editors
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+!.vscode/launch.json
+.idea/
+*.swp
+*.swo
+.env.idea
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Testing
+.vitest-cache/
+
+# GitHub Actions
+.github/workflows/*.local.yml
+
+# Package manager locks - We keep pnpm-lock.yaml but ignore others if they accidentally appear
+package-lock.json
+yarn.lock

@@ -1,0 +1,49 @@
+name: 'PR Review'
+description: 'AI-powered PR review and automated labeling'
+inputs:
+  llm:
+    description: 'LLM Provider (openai, anthropic, gemini, mistral)'
+    required: true
+    default: 'openai'
+  model:
+    description: 'Model name'
+    required: true
+    default: 'gpt-4o'
+  api-key:
+    description: 'LLM API Key'
+    required: true
+  github-token:
+    description: 'GitHub Token'
+    required: true
+  prompt-version:
+    description: 'Prompt version to use'
+    required: false
+    default: '1.0.0'
+  max-tokens:
+    description: 'Maximum tokens for response'
+    required: false
+    default: '4096'
+  debug:
+    description: 'Enable debug logging'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: ../../.github/composites/setup
+    - name: 'Run PR Review'
+
+      shell: bash
+      run: |
+        export LLM="${{ inputs.llm }}"
+        export MODEL="${{ inputs.model }}"
+        export API_KEY="${{ inputs.api-key }}"
+        export GITHUB_TOKEN="${{ inputs.github-token }}"
+        export PROMPT_VERSION="${{ inputs.prompt-version }}"
+        export MAX_TOKENS="${{ inputs.max-tokens }}"
+        export DEBUG="${{ inputs.debug }}"
+        export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
+        export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
+        npx tsx scripts/pr-review.ts

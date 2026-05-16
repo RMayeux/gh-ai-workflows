@@ -9,8 +9,8 @@ Most AI integrations in GitHub Actions are tightly coupled to a specific provide
 
 ### Available Actions
 
-- [PR Metadata](./docs/workflows/pr-metadata.md)
-- [PR Review](./docs/workflows/pr-review.md)
+- [PR Metadata](./workflows/pr-metadata/README.md)
+- [PR Review](./workflows/pr-review/README.md)
 
 ---
 

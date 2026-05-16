@@ -1,0 +1,29 @@
+name: 'AI PR Metadata'
+
+on:
+  pull_request:
+    types: [opened, labeled]
+
+jobs:
+  metadata:
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'update-metadata')
+    permissions:
+      pull-requests: write
+      contents: read
+      issues: write
+    steps:
+      - uses: ../../composites/setup
+      - name: 'Run AI PR Metadata'
+        uses: ./workflows/pr-metadata
+        with:
+          llm: 'gemini'
+          model: 'gemma-4-31b-it'
+          api-key: ${{ secrets.GEMINI_API_KEY }}
+          debug: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: 'Remove label'
+        if: github.event.action == 'labeled' && github.event.label.name == 'update-metadata'
+        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label 'update-metadata'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
