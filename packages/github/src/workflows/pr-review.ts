@@ -87,6 +87,22 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
 
     // 5. Post Review Comment
     Logger.log('Step 5: Posting review comment to GitHub...');
+    
+    // Remove previous AI review comments to avoid clutter
+    try {
+      const comments = await gh.listComments(owner, repo, pullNumber);
+      const aiComments = comments.filter(c => c.body?.startsWith('### 🤖 AI Code Review'));
+      for (const comment of aiComments) {
+        await gh.deleteComment(owner, repo, comment.id);
+      }
+      if (aiComments.length > 0) {
+        Logger.log(`Removed ${aiComments.length} previous AI review comments.`);
+      }
+    } catch (e: any) {
+      Logger.error(`Failed to clean up old comments: ${e.message}`);
+      // Non-critical, continue to post new comment
+    }
+
     const commentBody = `### 🤖 AI Code Review\n\n**Summary:** ${review.summary}\n\n`;
     
     if (review.issues.length > 0) {

@@ -66,6 +66,23 @@ export class GitHubClient {
       body,
     });
   }
+
+  async listComments(owner: string, repo: string, pull_number: number) {
+    const { data } = await this.octokit.issues.listComments({
+      owner,
+      repo,
+      issue_number: pull_number,
+    });
+    return data;
+  }
+
+  async deleteComment(owner: string, repo: string, comment_id: number) {
+    return this.octokit.issues.deleteComment({
+      owner,
+      repo,
+      comment_id,
+    });
+  }
 }
 
 export * from './workflows/pr-metadata';
