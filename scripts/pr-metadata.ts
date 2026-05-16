@@ -1,6 +1,26 @@
 import { runPRMetadataWorkflow } from '../packages/github/src/workflows/pr-metadata';
 
 async function main() {
+  const requiredEnvVars = {
+    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    LLM: process.env.LLM,
+    MODEL: process.env.MODEL,
+    API_KEY: process.env.API_KEY,
+    GITHUB_REPOSITORY_OWNER: process.env.GITHUB_REPOSITORY_OWNER,
+    GITHUB_REPOSITORY_NAME: process.env.GITHUB_REPOSITORY_NAME,
+    GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER,
+  };
+
+  const missingVars = Object.entries(requiredEnvVars)
+    .filter(([_, value]) => !value)
+    .map(([key]) => key);
+
+  if (missingVars.length > 0) {
+    console.error('Missing required environment variables:');
+    console.error(missingVars.join(', '));
+    process.exit(1);
+  }
+
   const inputs: any = {
     githubToken: process.env.GITHUB_TOKEN || '',
     llm: process.env.LLM || '',
@@ -13,12 +33,6 @@ async function main() {
     maxTokens: process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) : 4096,
     debug: process.env.DEBUG === 'true',
   };
-
-  if (!inputs.githubToken || !inputs.llm || !inputs.model || !inputs.apiKey || !inputs.owner || !inputs.repo || !inputs.pullNumber) {
-    console.error('Missing required environment variables');
-    console.error('Required: GITHUB_TOKEN, LLM, MODEL, API_KEY, GITHUB_REPOSITORY_OWNER, GITHUB_REPOSITORY_NAME, GITHUB_EVENT_PULL_REQUEST_NUMBER');
-    process.exit(1);
-  }
 
   try {
     await runPRMetadataWorkflow(inputs);
