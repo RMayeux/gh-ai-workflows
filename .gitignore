@@ -6,7 +6,8 @@ jspm_dependencies/
 .turbo/
 
 # Build outputs
-dist/
+**/dist/
+!/dist/
 out/
 build/
 *.tsbuildinfo

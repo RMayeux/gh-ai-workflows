@@ -1,4 +1,4 @@
-import { runPRMetadataWorkflow } from '../packages/github/src/workflows/pr-metadata';
+import { runPRMetadataWorkflow } from '../src/features/pr-metadata';
 
 async function main() {
   const requiredEnvVars = {

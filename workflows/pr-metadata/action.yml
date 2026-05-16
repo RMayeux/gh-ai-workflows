@@ -41,4 +41,4 @@ runs:
         export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
         export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
-        npx tsx scripts/pr-metadata.ts
+        node ${{ github.action_path }}/../../dist/pr-metadata/index.cjs
