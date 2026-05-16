@@ -76,7 +76,7 @@ export class GitHubClient {
     return data;
   }
 
-  async deleteComment(owner: string, repo: string, comment_id: number) {
+  async deleteComment(owner: string, repo: string, comment_id: number): Promise<any> {
     return this.octokit.issues.deleteComment({
       owner,
       repo,

@@ -22,3 +22,8 @@ jobs:
           api-key: ${{ secrets.GEMINI_API_KEY }}
           debug: 'true'
           github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: 'Remove label'
+        if: github.event.action == 'labeled' && github.event.label.name == 'update-metadata'
+        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label 'update-metadata'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
