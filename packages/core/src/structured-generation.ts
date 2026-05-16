@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { LLMProvider, GenerateRequest, GenerateResponse } from './types/llm';
+import { Logger } from './telemetry';
 
 export interface StructuredGenerationOptions {
   maxRetries?: number;
@@ -15,15 +16,47 @@ export interface StructuredGenerationResult<T> {
 }
 
 /**
- * Removes markdown code fences from a string.
+ * Robustly extracts JSON from a string, handling markdown fences and surrounding text.
  */
 export function cleanJson(text: string): string {
-  const regex = /^```json\s*([\s\S]*?)\s*```$|^```\s*([\s\S]*?)\s*```$|^[\s\S]*?({[\s\S]*})[\s\S]*$/;
-  const match = text.trim().match(regex);
-  if (match) {
-    return (match[1] || match[2] || match[3]).trim();
+  const trimmed = text.trim();
+  
+  // 1. Try parsing as-is first
+  try {
+    JSON.parse(trimmed);
+    return trimmed;
+  } catch {
+    // Not a plain JSON string, continue to cleaning
   }
-  return text.trim();
+
+  // 2. Try to find JSON blocks (```json ... ``` or ``` ... ```)
+  const fenceRegex = /```(?:json)?\s*([\s\S]*?)\s*```/;
+  const fenceMatch = trimmed.match(fenceRegex);
+  if (fenceMatch && fenceMatch[1]) {
+    const content = fenceMatch[1].trim();
+    try {
+      JSON.parse(content);
+      return content;
+    } catch {
+      // Found a fence but it's not valid JSON, keep it for last-resort attempt
+    }
+  }
+
+  // 3. Last resort: Find the first '{' and last '}'
+  const firstBrace = trimmed.indexOf('{');
+  const lastBrace = trimmed.lastIndexOf('}');
+  
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    const extracted = trimmed.substring(firstBrace, lastBrace + 1);
+    try {
+      JSON.parse(extracted);
+      return extracted;
+    } catch {
+      // Still not valid JSON
+    }
+  }
+
+  return trimmed;
 }
 
 /**
@@ -62,6 +95,10 @@ export async function generateStructured<T>(
       lastRawResponse = response.text;
       const cleaned = cleanJson(lastRawResponse);
       
+      if (cleaned !== lastRawResponse.trim()) {
+        Logger.debug(`[StructuredGeneration] JSON extraction performed. Raw length: ${lastRawResponse.length}, Cleaned length: ${cleaned.length}`);
+      }
+      
       try {
         const parsed = JSON.parse(cleaned);
         const validated = schema.parse(parsed);
@@ -73,10 +110,13 @@ export async function generateStructured<T>(
           rawResponse: lastRawResponse,
         };
       } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        Logger.error(`[StructuredGeneration] Attempt ${attempts} failed: ${errorMessage}`);
+        
         if (attempts > maxRetries) {
           return {
             success: false,
-            error: e instanceof Error ? e.message : String(e),
+            error: errorMessage,
             attempts,
             rawResponse: lastRawResponse,
           };
@@ -86,8 +126,8 @@ export async function generateStructured<T>(
         const repairPrompt = `The previous output was invalid JSON or failed validation. 
 Please correct it. 
 Original output: ${lastRawResponse}
-Error: ${e instanceof Error ? e.message : String(e)}
-Return ONLY the corrected JSON.`;
+Error: ${errorMessage}
+Return ONLY the corrected JSON without any markdown fences or conversational text.`;
 
         request = { 
           ...request, 
