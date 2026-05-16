@@ -2,6 +2,48 @@ import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability }
 import { ProviderError, RateLimitError, AuthenticationError, InvalidRequestError } from '@gh-ai-workflows/core';
 import { Logger } from '@gh-ai-workflows/core';
 
+interface GeminiRequest {
+  contents: Array<{
+    role: string;
+    parts: Array<{ text: string }>;
+  }>;
+  generationConfig?: {
+    temperature?: number;
+    maxOutputTokens?: number;
+    responseMimeType?: string;
+    stopSequences?: string[];
+  };
+  system_instruction?: {
+    parts: Array<{ text: string }>;
+  };
+}
+
+interface GeminiResponse {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{
+        text?: string;
+        thought?: boolean;
+      }>;
+    };
+    finishReason?: string;
+    usageMetadata?: GeminiUsage;
+  }>;
+  usageMetadata?: GeminiUsage;
+}
+
+interface GeminiUsage {
+  promptTokenCount: number;
+  candidatesTokenCount: number;
+  totalTokenCount: number;
+}
+
+interface GeminiErrorResponse {
+  error?: {
+    message: string;
+  };
+}
+
 export class GeminiProvider implements LLMProvider {
   readonly providerId = 'gemini';
   readonly capabilities: LLMProviderCapability = {
@@ -18,7 +60,7 @@ export class GeminiProvider implements LLMProvider {
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.config.model}:generateContent?key=${this.config.apiKey}`;
 
-      const body: any = {
+      const body: GeminiRequest = {
         contents: [
           {
             role: 'user',
@@ -39,7 +81,10 @@ export class GeminiProvider implements LLMProvider {
       }
 
       if (request.stopSequences && request.stopSequences.length > 0) {
-        body.generationConfig.stopSequences = request.stopSequences;
+        body.generationConfig = {
+          ...body.generationConfig,
+          stopSequences: request.stopSequences,
+        };
       }
 
       Logger.debugProvider(this.providerId, 'REQUEST', body);
@@ -51,12 +96,12 @@ export class GeminiProvider implements LLMProvider {
       });
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage = (errorData as any).error?.message || response.statusText;
+        const errorData = await response.json().catch(() => ({})) as GeminiErrorResponse;
+        const errorMessage = errorData.error?.message || response.statusText;
         throw new Error(`${response.status}: ${errorMessage}`);
       }
 
-      const data: any = await response.json();
+      const data: GeminiResponse = await response.json();
       Logger.debugProvider(this.providerId, 'RESPONSE', data);
 
       const candidate = data.candidates?.[0];
@@ -67,8 +112,8 @@ export class GeminiProvider implements LLMProvider {
 
       // Explicitly filter out thought blocks to ensure we only get the final answer
       const text = candidate.content?.parts
-        ?.filter((part: any) => part.thought !== true)
-        .map((part: any) => part.text || '')
+        ?.filter((part) => part.thought !== true)
+        .map((part) => part.text || '')
         .join('\n')
         .trim() || '';
       
@@ -85,7 +130,7 @@ export class GeminiProvider implements LLMProvider {
           completionTokens: usage.candidatesTokenCount,
           totalTokens: usage.totalTokenCount,
         },
-        finishReason: this.mapFinishReason(candidate.finishReason),
+        finishReason: this.mapFinishReason(candidate.finishReason ?? 'unknown'),
       };
     } catch (e: unknown) {
       throw this.normalizeError(e);

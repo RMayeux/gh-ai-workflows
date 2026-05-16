@@ -7,8 +7,8 @@ export const PRMetadataSchema = z.object({
   body: z.string()
     .min(1, 'Body is required'),
   change_type: z.enum(['feat', 'fix', 'refactor', 'perf', 'docs', 'test', 'build', 'ci', 'chore']),
-  breaking: z.boolean(),
-  doc_impact: z.boolean(),
+  breaking: z.boolean().default(false),
+  doc_impact: z.boolean().default(false),
   doc_slugs: z.array(z.string()).default([]),
 });
 

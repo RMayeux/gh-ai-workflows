@@ -7,7 +7,7 @@ export const PRReviewSchema = z.object({
     severity: z.enum(['error', 'warning', 'info']),
     description: z.string(),
   })).default([]),
-  approved: z.boolean(),
+  approved: z.boolean().default(false),
 });
 
 export type PRReview = z.infer<typeof PRReviewSchema>;
