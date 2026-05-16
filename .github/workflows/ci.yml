@@ -10,6 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: ../../composites/setup
+      - uses: ./composites/setup
       - run: pnpm lint
       - run: pnpm test
