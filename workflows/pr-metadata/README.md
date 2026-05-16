@@ -1,5 +1,7 @@
 # PR Metadata Workflow
 
+[View Action Definition](./action.yml)
+
 Generates automated PR metadata including summaries, label suggestions, and breaking change detection.
 
 ## Usage

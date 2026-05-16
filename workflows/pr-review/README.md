@@ -1,5 +1,7 @@
 # PR Review Workflow
 
+[View Action Definition](./action.yml)
+
 Performs an AI-powered review of pull request changes and automates labeling.
 
 ## Usage
