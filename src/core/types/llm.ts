@@ -1,5 +1,11 @@
 export type ModelCapability = 'json_mode' | 'streaming' | 'function_calling' | 'vision';
 
+export interface ProviderConfig {
+  apiKey: string;
+  model: string;
+  [key: string]: unknown;
+}
+
 export interface LLMProviderCapability {
   capabilities: Set<ModelCapability>;
   maxTokens: number;

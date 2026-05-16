@@ -10,7 +10,7 @@ export interface WorkflowContract<I, O> {
  * Since GHA inputs are usually strings, we attempt to parse JSON if possible.
  */
 export function validateWorkflowInput<I>(
-  contract: WorkflowContract<any, any>,
+  contract: WorkflowContract<I, unknown>,
   input: unknown
 ): I {
   let parsedInput = input;
@@ -30,7 +30,7 @@ export function validateWorkflowInput<I>(
  * Validates workflow output and serializes it to a JSON string.
  */
 export function serializeWorkflowOutput<O>(
-  contract: WorkflowContract<any, any>,
+  contract: WorkflowContract<unknown, O>,
   output: unknown
 ): string {
   const validated = contract.outputSchema.parse(output);

@@ -1,6 +1,6 @@
-import { LLMProvider } from './types/llm';
+import { LLMProvider, ProviderConfig } from './types/llm';
 
-export type ProviderConstructor = new (config: any) => LLMProvider;
+export type ProviderConstructor = new (config: ProviderConfig) => LLMProvider;
 
 export class ProviderRegistry {
   private static providers = new Map<string, ProviderConstructor>();
@@ -9,7 +9,7 @@ export class ProviderRegistry {
     this.providers.set(id, constructor);
   }
 
-  static create(id: string, config: any): LLMProvider {
+  static create(id: string, config: ProviderConfig): LLMProvider {
     const Constructor = this.providers.get(id);
     if (!Constructor) {
       throw new Error(`Provider ${id} is not registered`);

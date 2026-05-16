@@ -128,7 +128,7 @@ export async function generateStructured<T>(
           rawResponse: lastRawResponse,
         };
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
       const isRetryable = e instanceof LLMError ? e.retryable : false;
       const errorMessage = e instanceof Error ? e.message : String(e);
 
