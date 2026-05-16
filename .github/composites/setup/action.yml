@@ -4,7 +4,6 @@ description: 'Shared setup for all workflows including checkout, Node.js and pnp
 runs:
   using: 'composite'
   steps:
-    - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
     - uses: pnpm/action-setup@v4
     - uses: actions/setup-node@v4
       with:
