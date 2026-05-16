@@ -28,7 +28,15 @@ inputs:
 runs:
   using: 'composite'
   steps:
+    - name: Setup Node.js
+      uses: actions/setup-node@670825a89dc0abd596e7a3abd0f5e3f6e5faf37c
+      with:
+        node-version: '20'
+    - name: Install Dependencies
+      run: pnpm install
+      shell: bash
     - name: 'Run PR Review'
+
       shell: bash
       run: |
         export LLM="${{ inputs.llm }}"
