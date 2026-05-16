@@ -34,62 +34,84 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     githubClient: injectedClient,
   } = inputs;
 
-  if (debug) Logger.log(`Running PR Review Workflow for ${owner}/${repo}#${pullNumber}`);
+  if (debug) Logger.debug(`Running PR Review Workflow for ${owner}/${repo}#${pullNumber}`);
 
-  // 1. Initialize GitHub Client
-  const gh = injectedClient || new GitHubClient(githubToken);
-  
-  // 2. Gather Context (basic metadata)
-  const prDetails = await gh.getPRDetails(owner, repo, pullNumber);
-
-  // 3. Load Prompt
-  const loader = new PromptLoader(path.resolve(__dirname, '../../../core/prompts'));
-  const definition = await loader.loadWithFallback('pr-review', promptVersion);
-  
-  const prompt = PromptEngine.render(definition, {
-    pr_title: prDetails.title,
-    pr_body: prDetails.body ?? '',
-  });
-
-  // 4. Generate Structured Review
-  if (debug) Logger.log(`Generating review using ${llm}:${model}...`);
-  
-  registerAllProviders();
-  const provider = ProviderRegistry.create(llm, { apiKey });
-
-  const generationResult = await generateStructured(provider, PRReviewSchema, {
-    prompt: prompt.user,
-    systemPrompt: prompt.system,
-    maxTokens,
-  }, {
-    maxRetries: 3,
-    jsonMode: true
-  });
-
-  if (!generationResult.success) {
-    throw new Error(`LLM Review failed: ${generationResult.error}`);
-  }
-
-  const review = generationResult.data!;
-  if (debug) Logger.log('Generated Review:', review);
-
-  // 5. Post Review Comment
-  const commentBody = `### 🤖 AI Code Review\n\n**Summary:** ${review.summary}\n\n`;
-  
-  if (review.issues.length > 0) {
-    const issuesTable = review.issues
-      .map(i => `| ${i.severity} | ${i.description} |`)
-      .join('\n');
+  try {
+    // 1. Initialize GitHub Client
+    Logger.log('Step 1: Initializing GitHub Client...');
+    const gh = injectedClient || new GitHubClient(githubToken);
     
-    const commentWithIssues = commentBody + `**Issues:**\n| Severity | Description |\n|---|---|\n${issuesTable}\n`;
-    await gh.postComment(owner, repo, pullNumber, commentWithIssues);
-  } else {
-    await gh.postComment(owner, repo, pullNumber, commentBody + `✅ No issues found!`);
+    // 2. Gather Context
+    Logger.log('Step 2: Gathering PR details...');
+    const prDetails = await gh.getPRDetails(owner, repo, pullNumber).catch(err => {
+      throw new Error(`Failed to fetch PR details: ${err.message}`);
+    });
+
+    // 3. Load and Render Prompt
+    Logger.log('Step 3: Loading and rendering prompt...');
+    const loader = new PromptLoader(path.resolve(__dirname, '../../../core/prompts'));
+    const definition = await loader.loadWithFallback('pr-review', promptVersion).catch(err => {
+      throw new Error(`Failed to load prompt: ${err.message}`);
+    });
+    
+    const prompt = PromptEngine.render(definition, {
+      pr_title: prDetails.title,
+      pr_body: prDetails.body ?? '',
+    });
+
+    // 4. Generate Structured Review
+    Logger.log(`Step 4: Generating review using ${llm}:${model}...`);
+    registerAllProviders();
+    const provider = ProviderRegistry.create(llm, { apiKey });
+
+    const generationResult = await generateStructured(provider, PRReviewSchema, {
+      prompt: prompt.user,
+      systemPrompt: prompt.system,
+      maxTokens,
+    }, {
+      maxRetries: 3,
+      jsonMode: true
+    }).catch(err => {
+      throw new Error(`LLM request failed: ${err.message}`);
+    });
+
+    if (!generationResult.success) {
+      throw new Error(`LLM Review failed: ${generationResult.error}`);
+    }
+
+    const review = generationResult.data!;
+    if (debug) Logger.debug('Generated Review:', review);
+
+    // 5. Post Review Comment
+    Logger.log('Step 5: Posting review comment to GitHub...');
+    const commentBody = `### 🤖 AI Code Review\n\n**Summary:** ${review.summary}\n\n`;
+    
+    if (review.issues.length > 0) {
+      const issuesTable = review.issues
+        .map(i => `| ${i.severity} | ${i.description} |`)
+        .join('\n');
+      
+      const commentWithIssues = commentBody + `**Issues:**\n| Severity | Description |\n|---|---|\n${issuesTable}\n`;
+      await gh.postComment(owner, repo, pullNumber, commentWithIssues).catch(err => {
+        throw new Error(`Failed to post comment: ${err.message}`);
+      });
+    } else {
+      await gh.postComment(owner, repo, pullNumber, commentBody + `✅ No issues found!`).catch(err => {
+        throw new Error(`Failed to post comment: ${err.message}`);
+      });
+    }
+
+    // 6. Apply Labels
+    Logger.log('Step 6: Applying PR labels...');
+    const labels = review.approved ? ['approved'] : ['needs-changes'];
+    await gh.addLabels(owner, repo, pullNumber, labels).catch(err => {
+      throw new Error(`Failed to apply labels: ${err.message}`);
+    });
+
+    Logger.log('PR Review Workflow completed successfully.');
+    return review;
+  } catch (error: any) {
+    Logger.error(`Workflow failed at step: ${error.message}`);
+    throw error;
   }
-
-  // 6. Apply Labels
-  const labels = review.approved ? ['approved'] : ['needs-changes'];
-  await gh.addLabels(owner, repo, pullNumber, labels);
-
-  return review;
 }
