@@ -43,7 +43,7 @@ runs:
         export LLM="${{ inputs.llm }}"
         export MODEL="${{ inputs.model }}"
         export API_KEY="${{ inputs.api-key }}"
-        export GITHUB_TOKEN="${{ inputs.GITHUB_TOKEN }}"
+        export GITHUB_TOKEN="${{ inputs.github-token }}"
         export PROMPT_VERSION="${{ inputs.prompt-version }}"
         export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"

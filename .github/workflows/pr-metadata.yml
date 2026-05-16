@@ -5,7 +5,7 @@ on:
     types: [opened, synchronize, reopened]
 
 jobs:
-  review:
+  metadata:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
