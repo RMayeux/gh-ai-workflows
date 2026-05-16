@@ -2,16 +2,7 @@
   "name": "@gh-ai-workflows/core",
   "version": "0.0.0",
   "type": "module",
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": "./dist/index.js",
-    "./testing": "./dist/testing/index.js",
-    "./prompts": "./dist/prompts/index.js",
-    "./telemetry": "./dist/telemetry/index.js"
-  },
   "scripts": {
-    "build": "tsc",
     "test": "vitest run --passWithNoTests",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit"

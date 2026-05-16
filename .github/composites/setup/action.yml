@@ -11,5 +11,5 @@ runs:
         cache: 'pnpm'
     - run: pnpm install --ignore-scripts
       shell: bash
-    - run: pnpm build
+    - run: pnpm bundle
       shell: bash
