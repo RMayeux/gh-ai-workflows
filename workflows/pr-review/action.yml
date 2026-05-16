@@ -33,8 +33,7 @@ runs:
       with:
         node-version: 22
         cache: 'pnpm'
-      run: pnpm install
-      shell: bash
+    - run: pnpm install --ignore-scripts
     - name: 'Run PR Review'
 
       shell: bash
