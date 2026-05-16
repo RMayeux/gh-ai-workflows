@@ -33,6 +33,8 @@ runs:
         cache: 'pnpm'
     - run: pnpm install --ignore-scripts
       shell: bash
+    - run: pnpm build
+      shell: bash
     - name: Run PR Metadata Workflow
       shell: bash
       run: |

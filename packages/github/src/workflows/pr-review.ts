@@ -1,4 +1,4 @@
-import { GitHubClient, ContextBuilder } from '@gh-ai-workflows/github';
+import { GitHubClient } from '@gh-ai-workflows/github';
 import { generateStructured, ProviderRegistry } from '@gh-ai-workflows/core';
 import { registerAllProviders } from '@gh-ai-workflows/providers';
 import { PRReviewSchema } from '@gh-ai-workflows/validators';
