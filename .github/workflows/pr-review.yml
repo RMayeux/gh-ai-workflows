@@ -20,3 +20,4 @@ jobs:
           model: 'gemma-4-31b-it'
           api-key: ${{ secrets.GEMINI_API_KEY }}
           debug: 'true'
+          github_token: ${{ secrets.GITHUB_TOKEN }}
