@@ -11,6 +11,7 @@ inputs:
     description: 'LLM API Key'
     required: true
   prompt-version:
+
     description: 'Version of the prompt to use'
     required: false
     default: '1.0.0'
@@ -33,14 +34,15 @@ runs:
       run: pnpm install
       shell: bash
     - name: Run PR Metadata Workflow
-      run: npx tsx scripts/run-pr-metadata.ts
       shell: bash
-      env:
-        GITHUB_TOKEN: ${{ github.token }}
-        LLM: ${{ inputs.llm }}
-        MODEL: ${{ inputs.model }}
-        API_KEY: ${{ inputs.api-key }}
-        PROMPT_VERSION: ${{ inputs.prompt-version }}
-        MAX_TOKENS: ${{ inputs.max-tokens }}
-        DEBUG: ${{ inputs.debug }}
-        PR_NUMBER: ${{ github.event.pull_request.number }}
+      run: |
+        export LLM="${{ inputs.llm }}"
+        export MODEL="${{ inputs.model }}"
+        export API_KEY="${{ inputs.api-key }}"
+        export PROMPT_VERSION="${{ inputs.prompt-version }}"
+        export MAX_TOKENS="${{ inputs.max-tokens }}"
+        export DEBUG="${{ inputs.debug }}"
+        export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
+        export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
+        npx tsx scripts/pr-metadata.ts

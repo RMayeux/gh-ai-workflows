@@ -13,8 +13,8 @@ jobs:
       issues: write
     steps:
       - uses: actions/checkout@4.1.7
-      - name: 'Run AI PR Review'
-        uses: ./workflows/pr-review
+      - name: 'Run AI PR Metadata'
+        uses: ./workflows/pr-metadata
         with:
           llm: 'gemini'
           model: 'gemma-4-31b-it'

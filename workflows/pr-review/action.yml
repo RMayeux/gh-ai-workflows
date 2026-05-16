@@ -37,8 +37,7 @@ runs:
         export PROMPT_VERSION="${{ inputs.prompt-version }}"
         export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"
-        export GITHUB_TOKEN="${{ github.token }}"
-        export GITHUB_REPOSITORY="${{ github.repository }}"
-        export PR_NUMBER="${{ github.event.pull_request.number }}"
-        
-        node scripts/run-pr-review.ts
+        export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
+        export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
+        npx tsx scripts/pr-review.ts
