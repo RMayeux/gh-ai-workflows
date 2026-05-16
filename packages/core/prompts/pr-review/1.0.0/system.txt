@@ -47,7 +47,6 @@ Actual schema to follow:
 }
 ---
 # SUMMARY RULES
-- One paragraph, written for a senior engineer who has not read the PR.
 - Describe what the code does and whether the implementation is sound.
 - Flag the dominant concern if issues exist.
 - Never list files. No implementation detail unless it is the root cause of a finding.
