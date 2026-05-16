@@ -5,7 +5,7 @@ on:
     types: [opened, labeled]
 
 jobs:
-  review:
+  review: 
     runs-on: ubuntu-latest
     if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'need-review')
     permissions:
@@ -13,7 +13,8 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: ../../composites/setup
+      - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+      - uses: ./.github/composites/setup
       - name: 'Run AI PR Review'
         uses: ./workflows/pr-review
         with:

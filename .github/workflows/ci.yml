@@ -10,6 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: ../../composites/setup
+      - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+      - uses: ./.github/composites/setup
       - run: pnpm lint
       - run: pnpm test

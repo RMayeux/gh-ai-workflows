@@ -28,7 +28,6 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: ../../.github/composites/setup
     - name: Run PR Metadata Workflow
       shell: bash
       run: |

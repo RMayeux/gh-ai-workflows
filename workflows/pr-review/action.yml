@@ -31,9 +31,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: ../../.github/composites/setup
     - name: 'Run PR Review'
-
       shell: bash
       run: |
         export LLM="${{ inputs.llm }}"
