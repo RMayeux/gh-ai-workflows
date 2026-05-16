@@ -50,7 +50,7 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
 
     // 3. Load and Render Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
-    const loader = new PromptLoader(path.resolve(__dirname, '../../../core/prompts'));
+    const loader = new PromptLoader(path.resolve(__dirname, '../../packages/core/prompts'));
     const definition = await loader.loadWithFallback('pr-review', promptVersion).catch(err => {
       throw new Error(`Failed to load prompt: ${err.message}`);
     });
