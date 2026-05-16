@@ -31,7 +31,7 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - uses: ../../.github/actions/setup
+    - uses: ../../.github/composites/setup
     - name: 'Run PR Review'
 
       shell: bash

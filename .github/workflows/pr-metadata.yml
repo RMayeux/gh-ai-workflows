@@ -13,7 +13,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: ./actions/setup
+      - uses: ../../composites/setup
       - name: 'Run AI PR Metadata'
         uses: ./workflows/pr-metadata
         with:
