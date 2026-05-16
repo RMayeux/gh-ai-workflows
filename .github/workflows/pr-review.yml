@@ -13,7 +13,7 @@ jobs:
       contents: read
       issues: write
     steps:
-      - uses: ./composites/setup
+      - uses: ./.github/composites/setup
       - name: 'Run AI PR Review'
         uses: ./workflows/pr-review
         with:
