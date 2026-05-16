@@ -7,31 +7,48 @@ export class Logger {
     }
   }
 
-  static mask(text: string): string {
-    let masked = text;
-    for (const secret of this.secrets) {
-      masked = masked.split(secret).join('***');
+  static mask(value: any): any {
+    if (typeof value === 'string') {
+      let masked = value;
+      for (const secret of this.secrets) {
+        masked = masked.split(secret).join('***');
+      }
+      return masked;
     }
-    return masked;
+
+    if (Array.isArray(value)) {
+      return value.map(item => this.mask(item));
+    }
+
+    if (typeof value === 'object' && value !== null) {
+      const maskedObj: any = {};
+      for (const [k, v] of Object.entries(value)) {
+        maskedObj[k] = this.mask(v);
+      }
+      return maskedObj;
+    }
+
+    return value;
   }
 
   static log(message: string, ...args: any[]) {
-    const maskedArgs = args.map(arg => 
-      typeof arg === 'string' ? this.mask(arg) : arg
-    );
+    const maskedArgs = args.map(arg => this.mask(arg));
     console.log(this.mask(message), ...maskedArgs);
   }
 
   static error(message: string, ...args: any[]) {
-    const maskedArgs = args.map(arg => 
-      typeof arg === 'string' ? this.mask(arg) : arg
-    );
+    const maskedArgs = args.map(arg => this.mask(arg));
     console.error(this.mask(message), ...maskedArgs);
   }
 
   static debug(message: string, ...args: any[]) {
     if (process.env.DEBUG === 'true') {
-      this.log(`[DEBUG] ${message}`, ...args);
+      const maskedArgs = args.map(arg => this.mask(arg));
+      console.log(`[DEBUG] ${this.mask(message)}`, ...maskedArgs);
     }
+  }
+
+  static debugProvider(providerId: string, direction: 'REQUEST' | 'RESPONSE', data: any) {
+    this.debug(`[${providerId}] ${direction}:`, data);
   }
 }
