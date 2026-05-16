@@ -62,7 +62,7 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     // 4. Generate Structured Review
     Logger.log(`Step 4: Generating review using ${llm}:${model}...`);
     registerAllProviders();
-    const provider = ProviderRegistry.create(llm, { apiKey });
+    const provider = ProviderRegistry.create(llm, { apiKey, model });
 
     const generationResult = await generateStructured(provider, PRReviewSchema, {
       prompt: prompt.user,

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { LLMProvider, GenerateRequest, GenerateResponse } from './types/llm';
 import { Logger } from './telemetry';
+import { LLMError } from './errors/llm-errors';
 
 export interface StructuredGenerationOptions {
   maxRetries?: number;
@@ -60,7 +61,7 @@ export function cleanJson(text: string): string {
 }
 
 /**
- * Generates structured output from an LLM, with retry logic and validation.
+ * Generates structured output from an LLM, with retry logic only for HTTP/Transient errors.
  */
 export async function generateStructured<T>(
   provider: LLMProvider,
@@ -111,45 +112,33 @@ export async function generateStructured<T>(
         };
       } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        Logger.error(`[StructuredGeneration] Attempt ${attempts} failed: ${errorMessage}`);
+        Logger.error(`[StructuredGeneration] Parsing/Validation failed: ${errorMessage}. No retry for format errors.`);
         
-        if (attempts > maxRetries) {
-          return {
-            success: false,
-            error: errorMessage,
-            attempts,
-            rawResponse: lastRawResponse,
-          };
-        }
-
-        // Prepare repair request
-        const repairPrompt = `The previous output was invalid JSON or failed validation. 
-Please correct it. 
-Original output: ${lastRawResponse}
-Error: ${errorMessage}
-Return ONLY the corrected JSON without any markdown fences or conversational text.`;
-
-        request = { 
-          ...request, 
-          prompt: repairPrompt 
-        };
-      }
-    } catch (e: any) {
-      // Handle RateLimitError with exponential backoff
-      if (e.name === 'RateLimitError' && attempts <= maxRetries) {
-        const delay = Math.pow(2, attempts) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        continue;
-      }
-
-      if (attempts > maxRetries) {
         return {
           success: false,
-          error: e instanceof Error ? e.message : String(e),
+          error: `Format Error: ${errorMessage}`,
           attempts,
           rawResponse: lastRawResponse,
         };
       }
+    } catch (e: any) {
+      const isRetryable = e instanceof LLMError ? e.retryable : false;
+      const errorMessage = e instanceof Error ? e.message : String(e);
+
+      if (isRetryable && attempts <= maxRetries) {
+        const delay = Math.pow(2, attempts) * 1000;
+        Logger.error(`[StructuredGeneration] Retryable error: ${errorMessage}. Retrying in ${delay}ms... (Attempt ${attempts}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+
+      Logger.error(`[StructuredGeneration] Non-retryable error or max retries reached: ${errorMessage}`);
+      return {
+        success: false,
+        error: errorMessage,
+        attempts,
+        rawResponse: lastRawResponse,
+      };
     }
   }
 
