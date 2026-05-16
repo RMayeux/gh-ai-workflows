@@ -7,7 +7,7 @@ export class Logger {
     }
   }
 
-  static mask(value: any): any {
+  static mask(value: unknown): unknown {
     if (typeof value === 'string') {
       let masked = value;
       for (const secret of this.secrets) {
@@ -21,7 +21,7 @@ export class Logger {
     }
 
     if (typeof value === 'object' && value !== null) {
-      const maskedObj: any = {};
+      const maskedObj: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(value)) {
         maskedObj[k] = this.mask(v);
       }
@@ -31,24 +31,24 @@ export class Logger {
     return value;
   }
 
-  static log(message: string, ...args: any[]) {
+  static log(message: string, ...args: unknown[]) {
     const maskedArgs = args.map(arg => this.mask(arg));
     console.log(this.mask(message), ...maskedArgs);
   }
 
-  static error(message: string, ...args: any[]) {
+  static error(message: string, ...args: unknown[]) {
     const maskedArgs = args.map(arg => this.mask(arg));
     console.error(this.mask(message), ...maskedArgs);
   }
 
-  static debug(message: string, ...args: any[]) {
+  static debug(message: string, ...args: unknown[]) {
     if (process.env.DEBUG === 'true') {
       const maskedArgs = args.map(arg => this.mask(arg));
       console.log(`[DEBUG] ${this.mask(message)}`, ...maskedArgs);
     }
   }
 
-  static debugProvider(providerId: string, direction: 'REQUEST' | 'RESPONSE', data: any) {
+  static debugProvider(providerId: string, direction: 'REQUEST' | 'RESPONSE', data: unknown) {
     this.debug(`[${providerId}] ${direction}:`, data);
   }
 }

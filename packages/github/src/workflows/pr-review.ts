@@ -98,8 +98,9 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
       if (aiComments.length > 0) {
         Logger.log(`Removed ${aiComments.length} previous AI review comments.`);
       }
-    } catch (e: any) {
-      Logger.error(`Failed to clean up old comments: ${e.message}`);
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      Logger.error(`Failed to clean up old comments: ${message}`);
       // Non-critical, continue to post new comment
     }
 
@@ -129,8 +130,9 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
 
     Logger.log('PR Review Workflow completed successfully.');
     return review;
-  } catch (error: any) {
-    Logger.error(`Workflow failed at step: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    Logger.error(`Workflow failed at step: ${message}`);
     throw error;
   }
 }

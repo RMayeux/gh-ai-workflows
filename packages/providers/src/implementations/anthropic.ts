@@ -20,15 +20,16 @@ export class AnthropicProvider implements LLMProvider {
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
         finishReason: 'stop',
       };
-    } catch (e: any) {
+    } catch (e: unknown) {
       throw this.normalizeError(e);
     }
   }
 
-  private normalizeError(e: any): Error {
-    if (e.message?.includes('429')) return new RateLimitError(e.message);
-    if (e.message?.includes('401')) return new AuthenticationError(e.message);
-    if (e.message?.includes('400')) return new InvalidRequestError(e.message);
-    return new ProviderError(e.message);
+  private normalizeError(e: unknown): Error {
+    const message = e instanceof Error ? e.message : String(e);
+    if (message.includes('429')) return new RateLimitError(message);
+    if (message.includes('401')) return new AuthenticationError(message);
+    if (message.includes('400')) return new InvalidRequestError(message);
+    return new ProviderError(message);
   }
 }

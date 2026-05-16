@@ -111,8 +111,9 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
 
     Logger.log('PR Metadata Workflow completed successfully.');
     return result;
-  } catch (error: any) {
-    Logger.error(`Workflow failed at step: ${error.message}`);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    Logger.error(`Workflow failed at step: ${message}`);
     throw error;
   }
 }

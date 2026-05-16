@@ -5,10 +5,7 @@ export class FallbackProvider implements LLMProvider {
   readonly capabilities: LLMProviderCapability;
 
   constructor(
-    private providers: LLMProvider[],
-    options: {
-      maxRetriesPerProvider?: number;
-    } = {}
+    private providers: LLMProvider[]
   ) {
     // Capabilities are the intersection of all providers, or the most capable one depending on strategy.
     // Here we take the capabilities of the first provider as the primary.

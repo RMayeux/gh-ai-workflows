@@ -5,5 +5,5 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
  * Exports a zod schema as a JSON schema.
  */
 export function exportToJsonSchema(schema: z.ZodTypeAny) {
-  return zodToJsonSchema(schema as any);
+  return zodToJsonSchema(schema);
 }

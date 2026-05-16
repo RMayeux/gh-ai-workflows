@@ -1,5 +1,4 @@
 import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '@gh-ai-workflows/core';
-import { ProviderError } from '@gh-ai-workflows/core';
 
 export class MockProvider implements LLMProvider {
   readonly providerId = 'mock';

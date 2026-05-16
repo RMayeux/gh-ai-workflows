@@ -1,5 +1,5 @@
 export interface PRFixture {
-  details: any;
+  details: unknown;
   diff: string;
   files: string[];
 }

@@ -15,7 +15,7 @@ export class PromptLoader {
   async loadWithFallback(promptId: string, version: string): Promise<PromptDefinition> {
     try {
       return await this.load(promptId, version);
-    } catch (error) {
+    } catch {
       return this.loadLatest(promptId);
     }
   }
@@ -37,7 +37,7 @@ export class PromptLoader {
         const overridesPath = path.join(versionDir, 'overrides.json');
         const overridesContent = await fs.readFile(overridesPath, 'utf-8');
         overrides = JSON.parse(overridesContent);
-      } catch (e) {
+      } catch {
         // Overrides are optional
       }
 
@@ -48,8 +48,9 @@ export class PromptLoader {
         user,
         overrides,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to load prompt ${promptId} v${version}: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to load prompt ${promptId} v${version}: ${message}`);
     }
   }
 
@@ -61,7 +62,7 @@ export class PromptLoader {
     let versions: string[];
     try {
       versions = await fs.readdir(promptDir);
-    } catch (e) {
+    } catch {
       throw new Error(`No versions found for prompt ${promptId}`);
     }
     
