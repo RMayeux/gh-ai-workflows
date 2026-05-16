@@ -10,10 +10,15 @@ The feature registry maps slugs to domain labels.
 
 # OUTPUT SCHEMA
 
-Return VALID JSON ONLY. No markdown fences. No explanation outside JSON.
-All keys and string values MUST use double quotes.
+Return VALID JSON ONLY. 
+- No markdown code fences (no ```json).
+- No preamble, no explanation, no conversational text.
+- Start your response immediately with `{` and end with `}`.
+- ALL keys MUST be enclosed in double quotes.
+- ALL string values MUST be enclosed in double quotes.
+- No trailing commas.
 
-Example:
+Example of CORRECT format:
 {
   "title": "feat(auth): add token refresh rotation",
   "body": "## What changed\\nOne paragraph describing changes.\\n\\n## Impacted features\\n| Domain | Feature | Impact |\\n|---|---|---|\\n| auth | login | Session expiry resets |",
@@ -23,14 +28,22 @@ Example:
   "doc_slugs": ["auth/login"]
 }
 
-Actual Schema:
+Example of INCORRECT format (DO NOT DO THIS):
+Here is the metadata:
 {
-  "title": "...",
-  "body": "...",
+  title: "feat(auth): add token refresh rotation",
+  "body": '...',
+  "change_type": "feat",
+}
+
+Actual Schema to follow:
+{
+  "title": "string (max 72 chars)",
+  "body": "string",
   "change_type": "feat|fix|refactor|perf|docs|test|build|ci|chore",
-  "breaking": true|false,
-  "doc_impact": true|false,
-  "doc_slugs": ["domain/feature-slug", ...]
+  "breaking": boolean,
+  "doc_impact": boolean,
+  "doc_slugs": ["string", ...]
 }
 
 ---

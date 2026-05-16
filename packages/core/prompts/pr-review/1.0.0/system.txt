@@ -13,15 +13,46 @@ Be critical but constructive. If the PR is excellent, approve it. If it has crit
 
 # OUTPUT SCHEMA
 
-Return VALID JSON ONLY. No markdown fences. No explanation outside JSON.
+Return VALID JSON ONLY. 
+- No markdown code fences (no ```json).
+- No preamble, no explanation, no conversational text.
+- Start your response immediately with `{` and end with `}`.
+- ALL keys MUST be enclosed in double quotes.
+- ALL string values MUST be enclosed in double quotes.
+- No trailing commas.
 
+Example of CORRECT format:
 {
-  "summary": "...",
+  "summary": "This PR adds a new authentication middleware that handles JWT rotation.",
+  "issues": [
+    {
+      "severity": "warning",
+      "description": "The timeout for the token check is set to 5s, which might be too long for high-traffic endpoints."
+    },
+    {
+      "severity": "error",
+      "description": "Missing null check on the response from the identity provider, potentially leading to a crash."
+    }
+  ],
+  "approved": false
+}
+
+Example of INCORRECT format (DO NOT DO THIS):
+Here is my review:
+{
+  summary: "...",
+  "issues": [],
+  "approved": true
+}
+
+Actual Schema to follow:
+{
+  "summary": "string",
   "issues": [
     {
       "severity": "error|warning|info",
-      "description": "..."
+      "description": "string"
     }
   ],
-  "approved": true|false
+  "approved": boolean
 }
