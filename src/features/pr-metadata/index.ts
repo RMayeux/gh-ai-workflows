@@ -48,7 +48,7 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
 
     // 3. Load Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
-    const loader = new PromptLoader(path.resolve(__dirname, '../../core/prompts'));
+    const loader = new PromptLoader(path.resolve(__dirname, '../../src/core/prompts'));
     const definition = await loader.loadWithFallback('pr-metadata', promptVersion).catch(err => {
       throw new Error(`Failed to load prompt: ${err.message}`);
     });
