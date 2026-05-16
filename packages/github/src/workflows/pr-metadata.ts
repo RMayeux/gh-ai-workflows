@@ -1,0 +1,103 @@
+import { GitHubClient, ContextBuilder } from '../index';
+import { generateStructured } from '@gh-ai-workflows/core';
+import { ProviderRegistry } from '@gh-ai-workflows/core';
+import { registerAllProviders } from '@gh-ai-workflows/providers';
+import { PRMetadataSchema } from '@gh-ai-workflows/validators';
+import { PromptEngine, PromptLoader } from '@gh-ai-workflows/core';
+import { Logger } from '@gh-ai-workflows/core';
+import path from 'node:path';
+
+export interface PRMetadataWorkflowInputs {
+  githubToken: string;
+  llm: string;
+  model: string;
+  apiKey: string;
+  owner: string;
+  repo: string;
+  pullNumber: number;
+  promptVersion: string;
+  maxTokens?: number;
+  debug?: boolean;
+}
+
+export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & { githubClient?: GitHubClient }) {
+  const {
+    githubToken,
+    llm,
+    model,
+    apiKey,
+    owner,
+    repo,
+    pullNumber,
+    promptVersion,
+    maxTokens = 4096,
+    debug = false,
+    githubClient: injectedClient,
+  } = inputs;
+
+  if (debug) Logger.log(`Running PR Metadata Workflow for ${owner}/${repo}#${pullNumber}`);
+
+  // 1. Initialize GitHub Client
+  const gh = injectedClient || new GitHubClient(githubToken);
+  const contextBuilder = new ContextBuilder(gh);
+
+  // 2. Gather Context
+  if (debug) Logger.log('Fetching PR diff and files...');
+  const context = await contextBuilder.buildPRContext(owner, repo, pullNumber);
+
+  // 3. Load Prompt
+  const loader = new PromptLoader(path.resolve(__dirname, '../../../core/prompts'));
+  const definition = await loader.loadWithFallback('pr-metadata', promptVersion);
+  
+  const prompt = PromptEngine.render(definition, {
+    __CHANGED_FILES__: context.files.join('\\n'),
+    __CODE_DIFF__: context.diff,
+    __PR_TITLE__: context.details.title,
+    __PR_BODY__: context.details.body ?? '',
+  });
+
+  // 4. Generate Structured Output
+  if (debug) Logger.log(`Generating metadata using ${llm}:${model}...`);
+  
+  // Register providers first
+  registerAllProviders();
+  const provider = ProviderRegistry.create(llm, { apiKey });
+
+  const generationResult = await generateStructured(provider, PRMetadataSchema, {
+    prompt: prompt.user,
+    systemPrompt: prompt.system,
+    maxTokens,
+  }, {
+    maxRetries: 3,
+    jsonMode: true
+  });
+
+  if (!generationResult.success) {
+    throw new Error(`LLM Generation failed: ${generationResult.error}`);
+  }
+
+  const result = generationResult.data!;
+  if (debug) Logger.log('Generated Metadata:', result);
+
+  // 5. Update GitHub PR
+  if (debug) Logger.log('Updating PR title, body and labels...');
+  
+  await gh.updatePR(owner, repo, pullNumber, result.title, result.body);
+
+  const labels = [];
+  if (result.change_type) labels.push(result.change_type);
+  if (result.breaking) labels.push('breaking-change');
+  if (result.doc_impact) labels.push('doc-impact');
+
+  // Add size label based on diff stats from context
+  const changed = context.details.additions + context.details.deletions;
+  if (changed < 50) labels.push('size/XS');
+  else if (changed < 200) labels.push('size/S');
+  else if (changed < 500) labels.push('size/M');
+  else if (changed < 1000) labels.push('size/L');
+  else labels.push('size/XL');
+
+  await gh.addLabels(owner, repo, pullNumber, labels);
+
+  return result;
+}

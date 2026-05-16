@@ -1,0 +1,6 @@
+Please review the following Pull Request:
+
+Title: {{pr_title}}
+Description: {{pr_body}}
+
+Provide a summary of the changes, a list of specific issues (with severity), and a final decision on whether the PR is approved.

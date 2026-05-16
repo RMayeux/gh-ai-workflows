@@ -1,0 +1,8 @@
+# FEATURE REGISTRY
+{{registry}}
+
+# CHANGED FILES
+{{changed_files}}
+
+# CODE DIFF
+{{code_diff}}

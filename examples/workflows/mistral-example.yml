@@ -1,0 +1,19 @@
+# Example: Using Mistral
+name: PR Metadata (Mistral)
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  update-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+      issues: write
+    steps:
+      - uses: your-org/gh-ai-workflows/workflows/pr-metadata@v1
+        with:
+          llm: 'mistral'
+          model: 'mistral-large-latest'
+          api-key: ${{ secrets.MISTRAL_API_KEY }}

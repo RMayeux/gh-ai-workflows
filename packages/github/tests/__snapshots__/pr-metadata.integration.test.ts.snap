@@ -1,0 +1,69 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PR Metadata Workflow Integration > should process breaking-change-pr correctly 1`] = `
+{
+  "body": "Processed body for breaking-change-pr",
+  "breaking": true,
+  "change_type": "breaking",
+  "doc_impact": false,
+  "doc_slugs": [],
+  "title": "Processed: Change API endpoint",
+}
+`;
+
+exports[`PR Metadata Workflow Integration > should process docs-only-pr correctly 1`] = `
+{
+  "body": "Processed body for docs-only-pr",
+  "breaking": false,
+  "change_type": "feat",
+  "doc_impact": true,
+  "doc_slugs": [
+    "docs/readme",
+  ],
+  "title": "Processed: Update documentation",
+}
+`;
+
+exports[`PR Metadata Workflow Integration > should process huge-pr correctly 1`] = `
+{
+  "body": "Processed body for huge-pr",
+  "breaking": false,
+  "change_type": "feat",
+  "doc_impact": false,
+  "doc_slugs": [],
+  "title": "Processed: Massive refactor of core logic",
+}
+`;
+
+exports[`PR Metadata Workflow Integration > should process malformed-pr correctly 1`] = `
+{
+  "body": "Processed body for malformed-pr",
+  "breaking": false,
+  "change_type": "feat",
+  "doc_impact": false,
+  "doc_slugs": [],
+  "title": "Processed: WIP",
+}
+`;
+
+exports[`PR Metadata Workflow Integration > should process monorepo-pr correctly 1`] = `
+{
+  "body": "Processed body for monorepo-pr",
+  "breaking": false,
+  "change_type": "feat",
+  "doc_impact": false,
+  "doc_slugs": [],
+  "title": "Processed: Update shared types across packages",
+}
+`;
+
+exports[`PR Metadata Workflow Integration > should process small-pr correctly 1`] = `
+{
+  "body": "Processed body for small-pr",
+  "breaking": false,
+  "change_type": "feat",
+  "doc_impact": false,
+  "doc_slugs": [],
+  "title": "Processed: Fix typo in README",
+}
+`;
