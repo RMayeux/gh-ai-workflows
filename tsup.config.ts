@@ -23,12 +23,5 @@ export default defineConfig({
   splitting: false,
   sourcemap: false,
   clean: true,
-  esbuildOptions(options) {
-    options.alias = {
-      '@gh-ai-workflows/core': './packages/core/src/index.ts',
-      '@gh-ai-workflows/github': './packages/github/src/index.ts',
-      '@gh-ai-workflows/providers': './packages/providers/src/index.ts',
-      '@gh-ai-workflows/validators': './packages/validators/src/index.ts',
-    }
-  },
+  // No more aliases needed since we're using relative paths or TS paths in the code
 })

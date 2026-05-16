@@ -1,4 +1,4 @@
-import { runPRReviewWorkflow } from '../packages/github/src/workflows/pr-review';
+import { runPRReviewWorkflow } from '../src/features/pr-review';
 
 async function main() {
   const requiredEnvVars = {
