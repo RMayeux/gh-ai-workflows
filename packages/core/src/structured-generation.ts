@@ -112,8 +112,15 @@ export async function generateStructured<T>(
         };
       } catch (e) {
         const errorMessage = e instanceof Error ? e.message : String(e);
-        Logger.error(`[StructuredGeneration] Parsing/Validation failed: ${errorMessage}. No retry for format errors.`);
         
+        if (attempts <= maxRetries) {
+          Logger.error(`[StructuredGeneration] Parsing/Validation failed: ${errorMessage}. Retrying... (Attempt ${attempts}/${maxRetries})`);
+          const delay = Math.pow(2, attempts) * 1000;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          continue;
+        }
+        
+        Logger.error(`[StructuredGeneration] Parsing/Validation failed after max retries: ${errorMessage}`);
         return {
           success: false,
           error: `Format Error: ${errorMessage}`,
