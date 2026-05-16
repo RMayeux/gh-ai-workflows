@@ -10,8 +10,10 @@ inputs:
   api-key:
     description: 'LLM API Key'
     required: true
+  github-token:
+    description: 'GitHub Token'
+    required: true
   prompt-version:
-
     description: 'Version of the prompt to use'
     required: false
     default: '1.0.0'
@@ -41,11 +43,11 @@ runs:
         export LLM="${{ inputs.llm }}"
         export MODEL="${{ inputs.model }}"
         export API_KEY="${{ inputs.api-key }}"
-        export GITHUB_TOKEN="${{ inputs.github-token }}"
+        export GITHUB_TOKEN="${{ inputs.GITHUB_TOKEN }}"
         export PROMPT_VERSION="${{ inputs.prompt-version }}"
         export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"
         export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
         export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
-        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
         npx tsx scripts/pr-metadata.ts
