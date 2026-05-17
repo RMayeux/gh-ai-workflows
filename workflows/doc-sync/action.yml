@@ -13,9 +13,6 @@ inputs:
   github-token:
     description: 'GitHub Token'
     required: true
-  pull-number:
-    description: 'PR Number (optional for audit mode)'
-    required: false
   lookback-commits:
     description: 'Number of commits to look back if no audit PR is found'
     required: false

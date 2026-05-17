@@ -81,7 +81,12 @@ async function findAuditBaseline(gh: GitHubClient, owner: string, repo: string, 
   }
 
   Logger.log(`No audit PR found. Falling back to lookback of ${lookback} commits.`);
-  return runGitCommand(`git rev-list -n 1 HEAD~${lookback}`);
+  try {
+    return runGitCommand(`git rev-list -n 1 HEAD~${lookback}`);
+  } catch (e) {
+    Logger.warn(`Lookback of ${lookback} commits failed (likely fewer commits in history). Falling back to first commit.`);
+    return runGitCommand(`git rev-list --max-parents=0 HEAD`);
+  }
 }
 
 export async function runDocSyncWorkflow(inputs: DocSyncInputs & { githubClient?: GitHubClient }) {
