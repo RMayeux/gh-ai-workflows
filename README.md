@@ -11,6 +11,8 @@ Most AI integrations in GitHub Actions are tightly coupled to a specific provide
 
 - [PR Metadata](./workflows/pr-metadata/README.md)
 - [PR Review](./workflows/pr-review/README.md)
+- [AI Doc Sync](./workflows/doc-sync/README.md)
+- [AI QA Test Cases](./workflows/qa-test-cases/README.md)
 
 ---
 
@@ -27,7 +29,7 @@ This project is managed as a pnpm monorepo.
 **Process**
 1. Follow the standards defined in `docs/ARCHITECTURE.md`.
 2. Use `npx changeset` to document changes for versioning.
-3. Ensure all new provider implementations adhere to the `LLMProvider` interface in `packages/core`.
+3. Ensure all new provider implementations adhere to the `LLMProvider` interface in `src/core`.
 
 ---
 
