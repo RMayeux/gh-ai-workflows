@@ -181,7 +181,7 @@ Description: {{pr_body}}
 
 Provide a summary of the changes, a list of specific issues (with severity), and a final decision on whether the PR is approved.`,overrides:{}},"qa-test-cases":{id:`qa-test-cases`,system:`You are a senior QA lead reviewing a pull request before it goes to QA.
 Your goal is the most focused, actionable test list possible.
-Do not output any reasoning or analysis. Output only the final result in the requested JSON format.`,user:`---
+Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,user:`---
 ## Context
 {{project_context}}
 
@@ -204,12 +204,13 @@ Do not output any reasoning or analysis. Output only the final result in the req
 - No jargon, no code, no technical details
 - Skip permission checks unless permissions explicitly changed in this PR
 ---
-## Output Requirements
-Provide a structured JSON response.
-1. Identify the impacted features (domain/feature-slug).
-2. Generate a concise one-sentence summary of what changed and why it matters.
-3. Provide the list of test cases grouped by feature.
-4. Provide the total count of test cases.
+## Output Format
+You must return a JSON object with exactly these keys:
+- "summary": (string) A concise one-sentence summary of what changed and why it matters to QA.
+- "impactedFeatures": (array of objects) Each object must have:
+    - "featureSlug": (string) The domain/feature-slug (e.g., "auth/login").
+    - "testCases": (array of strings) Each string must be a test case in the "condition → action → expected result" format.
+- "totalTests": (number) The total number of test cases across all features.
 
 ### Good TC examples:
 - "Session has completed steps → AI scores step → Score AND confidence level (1–5) both appear"
