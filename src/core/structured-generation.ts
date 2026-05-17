@@ -43,12 +43,23 @@ export function cleanJson(text: string): string {
     }
   }
 
-  // 3. Last resort: Find the first '{' and last '}'
+  // 3. Last resort: Find the first '[' or '{' and the corresponding last ']' or '}'
   const firstBrace = trimmed.indexOf('{');
-  const lastBrace = trimmed.lastIndexOf('}');
+  const firstBracket = trimmed.indexOf('[');
   
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    const extracted = trimmed.substring(firstBrace, lastBrace + 1);
+  let start = -1;
+  let end = -1;
+
+  if (firstBrace !== -1 && (firstBracket === -1 || firstBrace < firstBracket)) {
+    start = firstBrace;
+    end = trimmed.lastIndexOf('}');
+  } else if (firstBracket !== -1) {
+    start = firstBracket;
+    end = trimmed.lastIndexOf(']');
+  }
+  
+  if (start !== -1 && end !== -1 && end > start) {
+    const extracted = trimmed.substring(start, end + 1);
     try {
       JSON.parse(extracted);
       return extracted;
