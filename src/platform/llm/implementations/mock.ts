@@ -1,4 +1,4 @@
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '@core';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability, ProviderConfig } from '@core';
 
 export class MockProvider implements LLMProvider {
   readonly providerId = 'mock';
@@ -8,7 +8,7 @@ export class MockProvider implements LLMProvider {
     contextWindow: 128000,
   };
 
-  constructor(private config: { responseText?: string }) {}
+  constructor(private config: ProviderConfig & { responseText?: string }) {}
 
   async generate(request: GenerateRequest): Promise<GenerateResponse> {
     return {

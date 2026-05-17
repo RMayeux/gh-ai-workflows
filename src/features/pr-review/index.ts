@@ -2,6 +2,8 @@ import { GitHubClient, ContextBuilder } from '@platform/github';
 import { generateStructured, ProviderRegistry, PromptEngine, PromptLoader, Logger } from '@core';
 import { registerAllProviders } from '@platform/llm';
 import { PRReviewSchema } from '@features/pr-review/schema';
+import { replaceBotComments, syncLabels } from '@platform/github';
+import { formatAIList } from '@core/utils/markdown';
 import path from 'node:path';
 
 export interface PRReviewWorkflowInputs {
@@ -84,45 +86,23 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     // 5. Post Review Comment
     Logger.log('Step 5: Posting review comment to GitHub...');
     
-    // Remove previous AI review comments to avoid clutter
-    try {
-      const comments = await gh.listComments(owner, repo, pullNumber);
-      const aiComments = comments.filter(c => c.body?.startsWith('### 🤖 AI Code Review'));
-      for (const comment of aiComments) {
-        await gh.deleteComment(owner, repo, pullNumber, comment.id);
-      }
-      if (aiComments.length > 0) {
-        Logger.log(`Removed ${aiComments.length} previous AI review comments.`);
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      Logger.error(`Failed to clean up old comments: ${message}`);
-      // Non-critical, continue to post new comment
-    }
+    await replaceBotComments(gh, owner, repo, pullNumber, '### 🤖 AI Code Review');
 
-    const commentBody = `### 🤖 AI Code Review\n\n**Summary:** ${review.summary}\n\n`;
+    const summary = `### 🤖 AI Code Review\n\n**Summary:** ${review.summary}\n\n`;
+    const issuesContent = formatAIList('Issues', review.issues.map(i => `[${i.severity}] ${i.description}`));
     
-    if (review.issues.length > 0) {
-      const issuesTable = review.issues
-        .map(i => `| ${i.severity} | ${i.description} |`)
-        .join('\n');
-      
-      const commentWithIssues = commentBody + `**Issues:**\n| Severity | Description |\n|---|---|\n${issuesTable}\n`;
-      await gh.postComment(owner, repo, pullNumber, commentWithIssues).catch(err => {
-        throw new Error(`Failed to post comment: ${err.message}`);
-      });
-    } else {
-      await gh.postComment(owner, repo, pullNumber, commentBody + `✅ No issues found!`).catch(err => {
-        throw new Error(`Failed to post comment: ${err.message}`);
-      });
-    }
+    const finalBody = review.issues.length > 0 
+      ? summary + issuesContent 
+      : summary + `✅ No issues found!`;
+
+    await gh.postComment(owner, repo, pullNumber, finalBody).catch(err => {
+      throw new Error(`Failed to post comment: ${err.message}`);
+    });
 
     // 6. Apply Labels
     Logger.log('Step 6: Applying PR labels...');
-    const labels = review.approved ? ['approved'] : ['needs-changes'];
-    await gh.addLabels(owner, repo, pullNumber, labels).catch(err => {
-      throw new Error(`Failed to apply labels: ${err.message}`);
-    });
+    const labelsToAdd = review.approved ? ['approved'] : ['needs-changes'];
+    await syncLabels(gh, owner, repo, pullNumber, { add: labelsToAdd });
 
     Logger.log('PR Review Workflow completed successfully.');
     return review;

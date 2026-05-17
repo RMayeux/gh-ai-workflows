@@ -1,27 +1,27 @@
-# PR Metadata Workflow
+# PR Metadata
 
-[View Action Definition](./action.yml)
-
-Generates automated PR metadata including summaries, label suggestions, and breaking change detection.
+Generates automated PR summaries, label suggestions, and breaking change detection.
 
 ## Usage
 
 ```yaml
-- uses: your-org/gh-ai-workflows/workflows/pr-metadata@v1
+- uses: RMayeux/gh-ai-workflows/workflows/pr-metadata@main
   with:
-    llm: 'gemini' # Required: openai, anthropic, gemini, mistral
-    model: 'gemini-1.5-pro' # Required
-    api-key: ${{ secrets.GEMINI_API_KEY }} # Required
-    max-tokens: '4096' # Optional
-    debug: 'false' # Optional
+    llm: 'gemini'
+    model: 'gemini-1.5-pro'
+    api-key: ${{ secrets.GEMINI_API_KEY }}
+    github-token: ${{ secrets.GITHUB_TOKEN }}
+    max-tokens: '4096'
+    debug: 'false'
 ```
 
 ## Inputs
 
 | Input | Required | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `llm` | Yes | - | LLM provider (`openai`, `anthropic`, `gemini`, `mistral`) |
-| `model` | Yes | - | LLM model name |
+| `llm` | Yes | - | Provider (`openai`, `anthropic`, `gemini`, `mistral`) |
+| `model` | Yes | - | Model name |
 | `api-key` | Yes | - | LLM API Key |
-| `max-tokens` | No | `4096` | Maximum tokens for generation |
+| `github-token` | Yes | - | GitHub Token |
+| `max-tokens` | No | `4096` | Max tokens for generation |
 | `debug` | No | `false` | Enable debug logging |

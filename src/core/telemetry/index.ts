@@ -48,6 +48,11 @@ export class Logger {
     }
   }
 
+  static warn(message: string, ...args: unknown[]) {
+    const maskedArgs = args.map(arg => this.mask(arg));
+    console.warn(this.mask(message), ...maskedArgs);
+  }
+
   static debugProvider(providerId: string, direction: 'REQUEST' | 'RESPONSE', data: unknown) {
     this.debug(`[${providerId}] ${direction}:`, data);
   }

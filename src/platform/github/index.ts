@@ -10,12 +10,12 @@ export class GitHubClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const headers = {
-      Authorization: `Bearer ${this.token}`,
+    const headers = new Headers({
+      'Authorization': `Bearer ${this.token}`,
       'Accept': 'application/vnd.github+json',
       'X-GitHub-Api-Version': '2022-11-28',
       ...options.headers,
-    };
+    });
 
     const response = await fetch(url, { ...options, headers });
 
@@ -25,7 +25,7 @@ export class GitHubClient {
     }
 
     // Handle cases where we expect raw text (like diffs) instead of JSON
-    if (options.headers?.['Accept'] === 'application/vnd.github.diff') {
+    if (options.headers && (options.headers as any)['Accept'] === 'application/vnd.github.diff') {
       return (await response.text()) as unknown as T;
     }
 
@@ -91,3 +91,5 @@ export class GitHubClient {
 }
 
 export * from './context';
+export { replaceBotComments } from './comments';
+export { syncLabels } from './labels';

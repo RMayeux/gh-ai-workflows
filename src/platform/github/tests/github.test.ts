@@ -32,11 +32,10 @@ describe('GitHubClient', () => {
       await client.getPRDetails('owner', 'repo', 1);
       
       const [url, options] = vi.mocked(fetch).mock.calls[0];
-      expect(options?.headers).toMatchObject({
-        Authorization: `Bearer ${token}`,
-        'Accept': 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
-      });
+      const headers = options?.headers as Headers;
+      expect(headers.get('Authorization')).toBe(`Bearer ${token}`);
+      expect(headers.get('Accept')).toBe('application/vnd.github+json');
+      expect(headers.get('X-GitHub-Api-Version')).toBe('2022-11-28');
     });
   });
 
@@ -49,7 +48,7 @@ describe('GitHubClient', () => {
       
       expect(result).toBe(diffText);
       const options = vi.mocked(fetch).mock.calls[0][1];
-      expect(options?.headers?.['Accept']).toBe('application/vnd.github.diff');
+      expect((options?.headers as Headers).get('Accept')).toBe('application/vnd.github.diff');
     });
   });
 

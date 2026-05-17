@@ -1,4 +1,4 @@
-import { PromptDefinition } from '@core/types/llm';
+import { PromptDefinition } from './types';
 
 export const QA_TEST_CASES: PromptDefinition = {
   id: 'qa-test-cases',

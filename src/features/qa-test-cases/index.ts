@@ -4,6 +4,8 @@ import { GitHubClient, ContextBuilder } from '@platform/github';
 import { generateStructured, ProviderRegistry, PromptEngine, PromptLoader, Logger } from '@core';
 import { registerAllProviders } from '@platform/llm';
 import { QATestCasesSchema, QATestCasesInputs } from './schema';
+import { replaceBotComments } from '@platform/github/comments';
+import { formatAIList } from '@core/utils/markdown';
 
 /**
  * Collects content of documentation files that match a given regex.
@@ -24,7 +26,7 @@ function collectDocs(docPattern: string): string {
         const content = readFileSync(file, 'utf8');
         docContent += `\n\n--- FILE: ${relativePath} ---\n${content}`;
       } catch (err) {
-        Logger.error(`Failed to read doc file ${relativePath}: ${err.message}`);
+        Logger.error(`Failed to read doc file ${relativePath}: ${err instanceof Error ? err.message : String(err)}`);
       }
     }
   }
@@ -77,7 +79,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     // 2. Gather Context
     Logger.log('Step 2: Fetching PR diff and files...');
     const context = await contextBuilder.buildPRContext(owner, repo, pullNumber).catch(err => {
-      throw new Error(`Failed to build PR context: ${err.message}`);
+      throw new Error(`Failed to build PR context: ${err instanceof Error ? err.message : String(err)}`);
     });
 
     // 3. Collect Docs (Optional)
@@ -96,7 +98,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     Logger.log('Step 4: Loading and rendering prompt...');
     const loader = new PromptLoader();
     const definition = await loader.load('qa-test-cases').catch(err => {
-      throw new Error(`Failed to load prompt: ${err.message}`);
+      throw new Error(`Failed to load prompt: ${err instanceof Error ? err.message : String(err)}`);
     });
     
     const prompt = PromptEngine.render(definition, {
@@ -117,7 +119,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
       maxRetries: 3,
       jsonMode: true
     }).catch(err => {
-      throw new Error(`LLM request failed: ${err.message}`);
+      throw new Error(`LLM request failed: ${err instanceof Error ? err.message : String(err)}`);
     });
 
     if (!generationResult.success) {
@@ -130,20 +132,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     // 6. GitHub Integration
     Logger.log('Step 6: Updating GitHub PR...');
 
-    // Cleanup old QA comments
-    try {
-      const comments = await gh.listComments(owner, repo, pullNumber);
-      const qaComments = comments.filter(c => c.body?.includes('🧪 QA Test Cases'));
-      for (const comment of qaComments) {
-        await gh.deleteComment(owner, repo, pullNumber, comment.id);
-      }
-      if (qaComments.length > 0) {
-        Logger.log(`Removed ${qaComments.length} previous QA comments.`);
-      }
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      Logger.error(`Failed to clean up old comments: ${message}`);
-    }
+    await replaceBotComments(gh, owner, repo, pullNumber, '🧪 QA Test Cases');
 
     // Format output
     const featureList = result.impactedFeatures.map(f => f.featureSlug).join(', ');
@@ -152,11 +141,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     body += `_${result.summary}_\n\n`;
 
     for (const feature of result.impactedFeatures) {
-      body += `### ${feature.featureSlug}\n`;
-      for (const tc of feature.testCases) {
-        body += `- [ ] ${tc}\n`;
-      }
-      body += `\n`;
+      body += formatAIList(feature.featureSlug, feature.testCases, '- [ ] ');
     }
     body += `\n---\n_Re-trigger by adding the \`qa-ready\` label._`;
 
