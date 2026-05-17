@@ -12,13 +12,13 @@ Do not output any reasoning or analysis. Output only the final result.`,
 ## PR code changes:
 {{code_diff}}
 
-## Impacted feature documentation (optionnal):
-{{impacted_docs}}
+## Documentation:
+{{documentation}}
 ---
 ## Rules
 - Read the diff to understand what changed
-- Read the feature docs to understand the business rules behind those changes
-- If feature docs are empty, infer business rules from the diff alone and flag each assumption with "(assumed)"
+- Use the documentation to understand the intent and business rules behind those changes
+- If no documentation is provided, infer intent from the diff alone and flag each assumption with "(assumed)"
 - ONLY generate tests for rules that are NEW or CHANGED in this PR
 - Assume everything untouched was already tested — do not include it
 - If a rule was only rephrased with no behavior change, skip it

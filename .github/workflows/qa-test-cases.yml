@@ -20,6 +20,7 @@ jobs:
           llm: 'gemini'
           model: 'gemma-4-31b-it'
           api-key: ${{ secrets.GEMINI_API_KEY }}
+          project-context: 'This is a provider-agnostic AI GitHub Actions platform.'
           doc-pattern: 'docs/features/.*\.md'
           debug: 'true'
           github-token: ${{ secrets.GITHUB_TOKEN }}

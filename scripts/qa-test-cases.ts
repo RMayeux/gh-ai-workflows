@@ -29,6 +29,7 @@ async function main() {
     owner: process.env.GITHUB_REPOSITORY_OWNER || '',
     repo: process.env.GITHUB_REPOSITORY_NAME || '',
     pullNumber: parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER || '0', 10),
+    projectContext: process.env.PROJECT_CONTEXT || undefined,
     docPattern: process.env.DOC_PATTERN || undefined,
     debug: process.env.DEBUG === 'true',
   };

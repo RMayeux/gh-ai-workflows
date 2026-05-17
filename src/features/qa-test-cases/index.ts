@@ -1,4 +1,4 @@
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { GitHubClient, ContextBuilder } from '@platform/github';
 import { generateStructured, ProviderRegistry, PromptEngine, PromptLoader, Logger } from '@core';
@@ -60,6 +60,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     owner,
     repo,
     pullNumber,
+    projectContext,
     docPattern,
     debug = false,
     githubClient: injectedClient,
@@ -80,11 +81,11 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     });
 
     // 3. Collect Docs (Optional)
-    let impactedDocs = '';
+    let projectDocs = '';
     if (docPattern) {
       Logger.log(`Step 3: Searching for documentation matching pattern: ${docPattern}...`);
-      impactedDocs = collectDocs(docPattern);
-      if (!impactedDocs) {
+      projectDocs = collectDocs(docPattern);
+      if (!projectDocs) {
         Logger.warn('No documentation found matching the provided pattern.');
       }
     } else {
@@ -99,8 +100,9 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     });
     
     const prompt = PromptEngine.render(definition, {
+      project_context: projectContext || 'No project context provided.',
       code_diff: context.diff,
-      impacted_docs: impactedDocs || 'No documentation provided for these changes.',
+      documentation: projectDocs || 'No documentation provided for these changes.',
     });
 
     // 5. Generate Structured Output

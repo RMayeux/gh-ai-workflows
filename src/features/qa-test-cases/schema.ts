@@ -19,6 +19,7 @@ export const QATestCasesInputsSchema = z.object({
   owner: z.string().min(1),
   repo: z.string().min(1),
   pullNumber: z.number().int().positive(),
+  projectContext: z.string().optional().describe('General context about the project to help the AI understand the domain.'),
   docPattern: z.string().optional().describe('Optional regex to find documentation files in the repository. If provided, all matching files will be included in the prompt.'),
   debug: z.boolean().optional(),
 });

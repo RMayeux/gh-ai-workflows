@@ -13,6 +13,9 @@ inputs:
   github-token:
     description: 'GitHub Token'
     required: true
+  project-context:
+    description: 'Optional general context about the project'
+    required: false
   doc-pattern:
     description: 'Optional regex to find documentation files in the repository'
     required: false

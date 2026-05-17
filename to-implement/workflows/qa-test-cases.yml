@@ -69,7 +69,7 @@ jobs:
               docs = f.read()
 
           prompt = prompt.replace('__CODE_DIFF__', code_diff)
-          prompt = prompt.replace('__IMPACTED_DOCS__', docs)
+          prompt = prompt.replace('__project_docs__', docs)
 
           with open('/tmp/prompt.txt', 'w') as f:
               f.write(prompt)

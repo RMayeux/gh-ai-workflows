@@ -9,7 +9,7 @@ Do not output any reasoning or analysis. Output only the final result.
 __CODE_DIFF__
 
 ## Impacted feature documentation:
-__IMPACTED_DOCS__
+__project_docs__
 
 ---
 
