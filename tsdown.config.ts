@@ -10,7 +10,7 @@ const entries = readdirSync(scriptsDir)
 
 export default defineConfig({
   entry: entries,
-  outDir: 'dist/scripts',
+  outDir: 'dist',
   format: 'esm',
   target: 'node20',
   platform: 'node',
