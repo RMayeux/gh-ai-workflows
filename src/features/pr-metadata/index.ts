@@ -2,6 +2,7 @@ import { GitHubClient, ContextBuilder } from '@platform/github';
 import { generateStructured, ProviderRegistry, PromptEngine, PromptLoader, Logger } from '@core';
 import { registerAllProviders } from '@platform/llm';
 import { PRMetadataSchema } from '@features/pr-metadata/schema';
+import { syncLabels } from '@platform/github/labels';
 import path from 'node:path';
 
 export interface PRMetadataWorkflowInputs {
@@ -91,21 +92,19 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
       throw new Error(`Failed to update PR: ${err.message}`);
     });
 
-    const labels = [];
-    if (result.change_type) labels.push(result.change_type);
-    if (result.breaking) labels.push('breaking-change');
-    if (result.doc_impact) labels.push('doc-impact');
+    const labelsToAdd = [];
+    if (result.change_type) labelsToAdd.push(result.change_type);
+    if (result.breaking) labelsToAdd.push('breaking-change');
+    if (result.doc_impact) labelsToAdd.push('doc-impact');
 
     const changed = context.details.additions + context.details.deletions;
-    if (changed < 50) labels.push('size/XS');
-    else if (changed < 200) labels.push('size/S');
-    else if (changed < 500) labels.push('size/M');
-    else if (changed < 1000) labels.push('size/L');
-    else labels.push('size/XL');
+    if (changed < 50) labelsToAdd.push('size/XS');
+    else if (changed < 200) labelsToAdd.push('size/S');
+    else if (changed < 500) labelsToAdd.push('size/M');
+    else if (changed < 1000) labelsToAdd.push('size/L');
+    else labelsToAdd.push('size/XL');
 
-    await gh.addLabels(owner, repo, pullNumber, labels).catch(err => {
-      throw new Error(`Failed to add labels: ${err.message}`);
-    });
+    await syncLabels(gh, owner, repo, pullNumber, { add: labelsToAdd });
 
     Logger.log('PR Metadata Workflow completed successfully.');
     return result;

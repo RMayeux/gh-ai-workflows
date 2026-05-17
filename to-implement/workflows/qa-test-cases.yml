@@ -1,0 +1,112 @@
+name: QA Test Cases
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: qa-${{ github.event.pull_request.number }}-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: true
+
+jobs:
+  generate-qa:
+    if: github.event.label.name == 'qa-ready'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Delete previous QA comments
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              per_page: 100
+            });
+            for (const c of comments.data.filter(c => c.body.includes('🧪 QA Test Cases'))) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: c.id
+              });
+            }
+
+      - name: Get diff and changed files
+        run: |
+          git diff --name-only origin/${{ github.event.pull_request.base.ref }}...${{ github.event.pull_request.head.ref }} \
+            ':!.github' ':!*.env*' ':!*.lock' \
+            > /tmp/code_diff_files.txt
+
+          git diff origin/${{ github.event.pull_request.base.ref }}...${{ github.event.pull_request.head.ref }} \
+            ':!.github' ':!*.env*' ':!*.lock' \
+            > /tmp/code_diff.txt
+
+      - name: Collect impacted feature docs
+        uses: ./.github/actions/collect-feature-docs
+        with:
+          changed_files_path: /tmp/code_diff_files.txt
+          output_path: /tmp/feature_docs.txt
+
+      - name: Build prompt
+        run: |
+          python3 - << 'PYEOF'
+          with open('.github/prompts/qa-test-cases.txt') as f:
+              prompt = f.read()
+          with open('/tmp/code_diff.txt') as f:
+              code_diff = f.read()
+          with open('/tmp/feature_docs.txt') as f:
+              docs = f.read()
+
+          prompt = prompt.replace('__CODE_DIFF__', code_diff)
+          prompt = prompt.replace('__project_docs__', docs)
+
+          with open('/tmp/prompt.txt', 'w') as f:
+              f.write(prompt)
+          PYEOF
+
+      - name: Generate QA test cases
+        id: llm
+        run: |
+          RESPONSE=$(node .github/scripts/call-llm.js)
+          echo "response<<EOF" >> $GITHUB_OUTPUT
+          echo "$RESPONSE" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PROMPT_FILE: /tmp/prompt.txt
+
+      - name: Post QA comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        env:
+          QA_BODY: ${{ steps.llm.outputs.response }}
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## 🧪 QA Test Cases\n\n${process.env.QA_BODY}\n\n---\n_Re-trigger by adding the \`qa-ready\` label._`
+            });
+
+      - name: Remove label (only on success)
+        if: success()
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            await github.rest.issues.removeLabel({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              name: 'qa-ready'
+            });

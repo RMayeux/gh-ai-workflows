@@ -1,13 +1,13 @@
 name: 'AI PR Metadata'
 
 on:
+  workflow_dispatch:
   pull_request:
-    types: [opened, labeled]
+    types: [opened]
 
 jobs:
   metadata:
     runs-on: ubuntu-latest
-    if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'update-metadata')
     permissions:
       pull-requests: write
       contents: read
@@ -22,8 +22,3 @@ jobs:
           api-key: ${{ secrets.GEMINI_API_KEY }}
           debug: 'true'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: 'Remove label'
-        if: github.event.action == 'labeled' && github.event.label.name == 'update-metadata'
-        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label 'update-metadata'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -5,6 +5,9 @@ This document provides step-by-step instructions for upgrading `gh-ai-workflows`
 ## v1.0.0 $\rightarrow$ v1.1.0 (Minor Update)
 No breaking changes. Updated provider capabilities for Gemini and added Mistral support.
 
+## v1.1.0 $\rightarrow$ v1.2.0 (Minor Update)
+Removed prompt versioning and filesystem-based prompt loading. Prompts are now managed as TypeScript constants in `src/core/prompts`. This simplifies the architecture and improves type safety.
+
 ## v1.0.0 $\rightarrow$ v2.0.0 (Major Update)
 *This is an example migration guide.*
 

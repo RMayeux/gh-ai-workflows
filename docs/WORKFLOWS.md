@@ -7,7 +7,7 @@ Workflows in `gh-ai-workflows` are designed as modular, reusable composite actio
 A typical workflow consists of three layers:
 1. **GitHub Action Definition** (`action.yml`): Defines the public API (inputs/outputs).
 2. **Execution Script** (`scripts/*.ts`): Handles environment setup, input validation, and process orchestration.
-3. **Workflow Logic** (`packages/github/src/workflows/*.ts`): Contains the domain-specific logic for interacting with GitHub and the AI.
+3. **Workflow Logic** (`src/features/**/*.ts`): Contains the domain-specific logic for interacting with GitHub and the AI.
 
 ## Execution Flow
 
@@ -25,15 +25,15 @@ The workflow fetches the necessary data from the GitHub API:
 
 ### 3. Prompt Engineering
 The `PromptEngine` is used to build the final prompt:
-- **Template Loading**: Loads the correct version of the prompt from `/prompts`.
-- **Interpolation**: Injects the gathered GitHub context into placeholders (e.g., `__CODE_DIFF__`).
+- **Template Loading**: Loads the prompt by ID from `src/core/prompts`.
+- **Interpolation**: Injects the gathered GitHub context into placeholders (e.g., `{{code_diff}}`).
 - **Provider Overrides**: Applies provider-specific wording if configured.
 
 ### 4. Structured Generation
 The prompt is sent to the `generateStructured` pipeline:
 - **JSON Mode**: Requests JSON output if supported by the provider.
 - **Parsing & Validation**: Parsed as JSON and validated against a target Zod schema.
-- **Self-Repair**: If validation fails, the LLM is asked to correct the output based on the error.
+- **Retries**: If validation fails, the request is retried with exponential backoff.
 
 ### 5. GitHub Integration
 The validated AI output is used to perform actions on GitHub:

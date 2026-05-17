@@ -1,13 +1,14 @@
 name: 'AI PR Review'
 
 on:
+on:
+  workflow_dispatch:
   pull_request:
-    types: [opened, labeled]
+    types: [opened]
 
 jobs:
   review: 
     runs-on: ubuntu-latest
-    if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'need-review')
     permissions:
       pull-requests: write
       contents: read
@@ -22,8 +23,3 @@ jobs:
           api-key: ${{ secrets.GEMINI_API_KEY }}
           debug: 'true'
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: 'Remove label'
-        if: github.event.action == 'labeled' && github.event.label.name == 'need-review'
-        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label 'need-review'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

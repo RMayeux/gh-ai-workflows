@@ -37,3 +37,7 @@ export interface LLMProvider {
   readonly capabilities: LLMProviderCapability;
   generate(request: GenerateRequest): Promise<GenerateResponse>;
 }
+
+export interface RetryableError extends Error {
+  retryable?: boolean;
+}

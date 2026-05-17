@@ -1,14 +1,12 @@
-name: 'PR Review'
-description: 'AI-powered PR review and automated labeling'
+name: 'QA Test Cases'
+description: 'Generates QA test cases based on PR diff and feature docs'
 inputs:
   llm:
-    description: 'LLM Provider (openai, anthropic, gemini, mistral)'
+    description: 'LLM provider (openai, anthropic, gemini, mistral)'
     required: true
-    default: 'openai'
   model:
-    description: 'Model name'
+    description: 'LLM model name'
     required: true
-    default: 'gpt-4o'
   api-key:
     description: 'LLM API Key'
     required: true
@@ -24,28 +22,28 @@ inputs:
   repo:
     description: 'Repo Name'
     required: false
-  max-tokens:
-    description: 'Maximum tokens for response'
+  project-context:
+    description: 'Optional general context about the project'
     required: false
-    default: '4096'
+  doc-pattern:
+    description: 'Optional regex to find documentation files in the repository'
+    required: false
   debug:
     description: 'Enable debug logging'
     required: false
     default: 'false'
-
 runs:
   using: 'composite'
   steps:
-    - name: 'Run PR Review'
+    - name: Run QA Test Cases Workflow
       shell: bash
       run: |
         export LLM="${{ inputs.llm }}"
         export MODEL="${{ inputs.model }}"
         export API_KEY="${{ inputs.api-key }}"
         export GITHUB_TOKEN="${{ inputs.github-token }}"
-        export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"
         export GITHUB_REPOSITORY_OWNER="${{ inputs.owner || GITHUB_REPOSITORY%%/* }}"
         export GITHUB_REPOSITORY_NAME="${{ inputs.repo || GITHUB_REPOSITORY#*/ }}"
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ inputs.pull-number || github.event.pull_request.number }}"
-        node ${{ github.action_path }}/../../dist/pr-review.mjs
+        node ${{ github.action_path }}/../../dist/qa-test-cases.mjs

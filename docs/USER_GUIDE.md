@@ -66,13 +66,13 @@ This means one of the inputs you provided in the YAML file is missing or in the 
 The AI provider took too long to respond. This can happen with very large PR diffs. Try to keep your PRs smaller or ensure you are using a model with a larger context window.
 
 #### ❌ "Max retries reached"
-The LLM failed to produce a valid JSON response even after multiple correction attempts. This usually indicates a prompt version mismatch or a provider-side issue.
+The LLM failed to produce a valid JSON response even after multiple correction attempts. This usually indicates a provider-side issue or a highly complex prompt.
 
 ### Debugging
-To see detailed logs (including the raw prompts and LLM responses), set the `debug` input to `true`:
+To see detailed logs (including the raw prompts and LLM responses), set the `DEBUG` environment variable to `true` in your GitHub Action environment or locally:
 ```yaml
-with:
-  debug: 'true'
+env:
+  DEBUG: 'true'
 ```
 *Note: Secrets are automatically masked in debug logs.*
 
@@ -84,7 +84,7 @@ with:
 A: Yes, the workflow sends the PR diff and changed file names to the selected provider to generate the summary. Please ensure your organization's AI policy allows this.
 
 **Q: Can I use my own prompt?**
-A: Yes. You can contribute new prompt templates to the `/prompts` directory of the monorepo and reference them via the `prompt-version` input.
+A: Yes. You can contribute new prompt templates to the `src/core/prompts` directory of the monorepo.
 
 **Q: Does it support monorepos?**
 A: Absolutely. The diff-fetching logic is designed to handle monorepo structures efficiently.

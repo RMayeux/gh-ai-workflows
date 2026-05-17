@@ -1,0 +1,49 @@
+name: 'AI QA Test Cases'
+
+on:
+  pull_request:
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: 'Pull Request Number'
+        required: true
+      owner:
+        description: 'Repository Owner'
+        required: false
+      repo:
+        description: 'Repository Name'
+        required: false
+      debug:
+        description: 'Enable Debugging'
+        type: boolean
+        default: false
+
+jobs:
+  generate-qa:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Set PR Context'
+        run: |
+          echo "PR_NUMBER=${{ github.event.pull_request.number || github.event.inputs.pull_number }}" >> $GITHUB_ENV
+          echo "OWNER=${{ github.event.repository.owner.login || github.event.inputs.owner }}" >> $GITHUB_ENV
+          echo "REPO=${{ github.event.repository.name || github.event.inputs.repo }}" >> $GITHUB_ENV
+          echo "DEBUG=${{ github.event.inputs.debug || 'false' }}" >> $GITHUB_ENV
+      - name: 'Run AI QA Test Cases'
+        uses: ./workflows/qa-test-cases
+        with:
+          llm: 'gemini'
+          model: 'gemma-4-31b-it'
+          api-key: ${{ secrets.GEMINI_API_KEY }}
+          project-context: 'This is a provider-agnostic AI GitHub Actions platform.'
+          doc-pattern: 'docs/features/.*\.md'
+          debug: ${{ env.DEBUG }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pull-number: ${{ env.PR_NUMBER }}
+          owner: ${{ env.OWNER }}
+          repo: ${{ env.REPO }}

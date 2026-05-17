@@ -28,7 +28,7 @@ describe('ProviderRegistry', () => {
   });
 
   it('should throw error for unregistered provider', () => {
-    expect(() => ProviderRegistry.create('unknown', {})).toThrow('Provider unknown is not registered');
+    expect(() => ProviderRegistry.create('unknown', { apiKey: 'test', model: 'test' })).toThrow('Provider unknown is not registered');
   });
 
   it('should list registered providers', () => {

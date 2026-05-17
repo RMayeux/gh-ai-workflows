@@ -21,14 +21,6 @@ Users are encouraged to pin to major versions for automatic updates:
 uses: your-org/gh-ai-workflows/workflows/pr-metadata@v1
 ```
 
-### Prompts
-Prompts follow their own independent SemVer lifecycle within the `/prompts` directory.
-- **Patch**: Wording tweaks.
-- **Minor**: New optional variables.
-- **Major**: Schema changes.
-
-Prompt versions are referenced in workflow inputs (`prompt-version`).
-
 ## 2. Release Process
 
 ### Local Development
