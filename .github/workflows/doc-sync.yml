@@ -19,6 +19,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+        with:                                                                                                                                                                       
+          fetch-depth: 0
       - name: Run Doc Sync
         uses: ./workflows/doc-sync
         with:
@@ -26,6 +28,5 @@ jobs:
           model: 'gemma-4-31b-it'
           api-key: ${{ secrets.GEMINI_API_KEY }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          pull-number: ${{ github.event.pull_request.number }}
           doc-pattern: '.*\.md$'
           debug: 'false'
