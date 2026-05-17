@@ -12,16 +12,19 @@ export default defineConfig({
   entry: Object.fromEntries(
     entries.map(name => {
       const key = name.replace(/\.ts$/, '')
-      return [`${key}/index`, `${scriptsDir}/${name}`]
+      return [key, `${scriptsDir}/${name}`]
     })
   ),
   outDir: 'dist',
-  format: ['cjs'],
+  format: ['esm'],
   target: 'node20',
   bundle: true,
   minify: true,
   splitting: false,
   sourcemap: false,
   clean: true,
-  // No more aliases needed since we're using relative paths or TS paths in the code
+  esbuildOptions(options) {
+    options.mainFields = ['module', 'main']
+    options.conditions = ['import', 'default']
+  },
 })

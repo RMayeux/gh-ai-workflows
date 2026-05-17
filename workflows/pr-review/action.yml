@@ -44,4 +44,4 @@ runs:
         export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
         export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
-        node ${{ github.action_path }}/../../dist/pr-review/index.cjs
+        node ${{ github.action_path }}/../../dist/pr-review.js
