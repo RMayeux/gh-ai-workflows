@@ -15,10 +15,6 @@ inputs:
   github-token:
     description: 'GitHub Token'
     required: true
-  prompt-version:
-    description: 'Prompt version to use'
-    required: false
-    default: '1.0.0'
   max-tokens:
     description: 'Maximum tokens for response'
     required: false
@@ -38,10 +34,9 @@ runs:
         export MODEL="${{ inputs.model }}"
         export API_KEY="${{ inputs.api-key }}"
         export GITHUB_TOKEN="${{ inputs.github-token }}"
-        export PROMPT_VERSION="${{ inputs.prompt-version }}"
         export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"
         export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
         export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
-        node ${{ github.action_path }}/../../dist/pr-review/index.cjs
+        node ${{ github.action_path }}/../../dist/pr-review.mjs

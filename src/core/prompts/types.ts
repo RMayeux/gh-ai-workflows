@@ -5,7 +5,6 @@ export interface PromptOverride {
 
 export interface PromptDefinition {
   id: string;
-  version: string;
   system: string;
   user: string;
   overrides?: Record<string, PromptOverride>;
