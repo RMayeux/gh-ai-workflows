@@ -5,11 +5,11 @@ export const DocSyncPrompt: PromptDefinition = {
   system: `You are an expert technical writer ensuring documentation stays perfectly synchronized with the codebase.
 Your goal is the most precise, minimal set of documentation changes needed — no more, no less.
 Maintain the existing tone, style, and structure of the documentation at all times.
-Do not output any reasoning or analysis. Output only the final result.`,
+Do not output any reasoning or analysis. Output only the final result.
+You MUST always respond with a single JSON object — never a bare array. The root must be an object with exactly two keys: "summary" and "changes".`,
   user: `---
 ## PR code changes:
 {{code_diff}}
-
 ## Existing documentation:
 {{documentation}}
 ---
@@ -23,7 +23,7 @@ Do not output any reasoning or analysis. Output only the final result.`,
 - If no documentation changes are needed, return an empty changes array and a summary stating so
 ---
 ## Output format
-Return a JSON object matching the following structure:
+You MUST return a single JSON object — not an array, not markdown, not any wrapper. The root level must be an object.
 
 \`\`\`json
 {
@@ -32,11 +32,13 @@ Return a JSON object matching the following structure:
     {
       "path": "relative/path/to/doc.md",
       "action": "update" | "create" | "delete",
-      "content": "The full new content of the file (empty if action is delete)",
+      "content": "The full new content of the file (empty string if action is delete)",
       "explanation": "Short explanation of why this change is needed"
     }
   ]
 }
-\`\`\``,
+\`\`\`
+
+CRITICAL: The response root MUST be a JSON object with "summary" (string) and "changes" (array). Do NOT return a bare array at the top level.`,
   overrides: {},
 };
