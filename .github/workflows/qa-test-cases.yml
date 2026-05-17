@@ -1,0 +1,29 @@
+name: 'AI QA Test Cases'
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  generate-qa:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'qa-ready'
+    permissions:
+      pull-requests: write
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: 'Run AI QA Test Cases'
+        uses: ./workflows/qa-test-cases
+        with:
+          llm: 'gemini'
+          model: 'gemma-4-31b-it'
+          api-key: ${{ secrets.GEMINI_API_KEY }}
+          doc-pattern: 'docs/features/.*\.md'
+          debug: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: 'Remove label'
+        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label 'qa-ready'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -89,7 +89,7 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
       const comments = await gh.listComments(owner, repo, pullNumber);
       const aiComments = comments.filter(c => c.body?.startsWith('### 🤖 AI Code Review'));
       for (const comment of aiComments) {
-        await gh.deleteComment(owner, repo, comment.id);
+        await gh.deleteComment(owner, repo, pullNumber, comment.id);
       }
       if (aiComments.length > 0) {
         Logger.log(`Removed ${aiComments.length} previous AI review comments.`);

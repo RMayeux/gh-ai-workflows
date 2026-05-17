@@ -16,7 +16,6 @@ export const WorkflowInputsSchema = z.object({
   llm: z.enum(['openai', 'anthropic', 'gemini', 'mistral', 'mock']),
   model: z.string().min(1),
   apiKey: z.string().min(1),
-  promptVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
   // ...
 });
 ```
@@ -33,18 +32,15 @@ The core of the platform is the `generateStructured` function. Instead of hoping
 4. **Schema Validation**: `schema.parse(object)` checks the object against the Zod schema.
 
 ### Self-Repair Loop
+When validation fails, the platform implements a retry mechanism to handle transient issues or inconsistent LLM outputs:
 
-When validation fails, the platform doesn't simply give up. It utilizes the LLM's ability to correct itself:
-
-1. **Catch Error**: The Zod validation error is caught.
-2. **Repair Prompt**: A new prompt is generated:
-   *"The previous output was invalid JSON or failed validation. Original output: [RAW]. Error: [ERROR]. Return ONLY the corrected JSON."*
-3. **Retry**: The repair prompt is sent to the LLM.
-4. **Repeat**: This loop continues up to `maxRetries` (default: 2).
+1. **Catch Error**: The Zod validation or JSON parsing error is caught.
+2. **Retry**: The request is retried using exponential backoff.
+3. **Repeat**: This loop continues up to `maxRetries` (default: 2).
 
 ## Validation Results
 
-The `Validator` class in `packages/validators` provides a normalized result format:
+The validation logic in `src/core/structured-generation.ts` provides a normalized result format:
 
 ```typescript
 export interface ValidationResult<T> {

@@ -12,7 +12,6 @@ Performs an AI-powered review of pull request changes and automates labeling.
     llm: 'openai' # Required: openai, anthropic, gemini, mistral
     model: 'gpt-4o' # Required
     api-key: ${{ secrets.OPENAI_API_KEY }} # Required
-    prompt-version: '1.0.0' # Optional
     max-tokens: '4096' # Optional
     debug: 'false' # Optional
 ```
@@ -24,6 +23,5 @@ Performs an AI-powered review of pull request changes and automates labeling.
 | `llm` | Yes | `openai` | LLM Provider (`openai`, `anthropic`, `gemini`, `mistral`) |
 | `model` | Yes | `gpt-4o` | Model name |
 | `api-key` | Yes | - | LLM API Key |
-| `prompt-version` | No | `1.0.0` | Prompt version to use |
 | `max-tokens` | No | `4096` | Maximum tokens for response |
 | `debug` | No | `false` | Enable debug logging |

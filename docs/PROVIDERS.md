@@ -4,7 +4,7 @@ The Provider system is designed to make the platform agnostic to the underlying 
 
 ## Architecture
 
-The system relies on a common interface defined in `packages/core`: `LLMProvider`.
+The system relies on a common interface defined in `src/core/types/llm.ts`: `LLMProvider`.
 
 ### The `LLMProvider` Interface
 
@@ -47,8 +47,8 @@ const provider = ProviderRegistry.create('openai', { apiKey: 'sk-...' });
 
 To add a new LLM provider:
 
-1. **Create Implementation**: Create a new class in `packages/providers/src/implementations/` that implements `LLMProvider`.
+1. **Create Implementation**: Create a new class in `src/platform/llm/implementations/` that implements `LLMProvider`.
 2. **Implement `generate`**: Handle the provider's specific API requests and responses.
 3. **Normalize Errors**: Use the `normalizeError` method to map vendor-specific errors (like 429 Too Many Requests) to platform-standard errors (`RateLimitError`).
-4. **Register**: Add the provider to `registerAllProviders()` in `packages/providers/src/index.ts`.
-5. **Test**: Add unit tests in `packages/providers/tests/` using the Mock provider or real API keys.
+4. **Register**: Add the provider to `registerAllProviders()` in `src/platform/llm/index.ts`.
+5. **Test**: Add unit tests in `src/platform/llm/tests/` using the Mock provider or real API keys.

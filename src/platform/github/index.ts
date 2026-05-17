@@ -82,6 +82,12 @@ export class GitHubClient {
       method: 'DELETE',
     });
   }
+
+  async removeLabel(owner: string, repo: string, pull_number: number, label: string): Promise<any> {
+    return this.request<any>(`/repos/${owner}/${repo}/issues/${pull_number}/labels/${label}`, {
+      method: 'DELETE',
+    });
+  }
 }
 
 export * from './context';
