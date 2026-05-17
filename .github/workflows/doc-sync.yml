@@ -7,7 +7,7 @@ on:
     paths:
       - 'scripts/**'
       - 'src/**'
-      - 'workflows/**'    
+      - 'workflows/**'
 
 permissions:
   contents: write
