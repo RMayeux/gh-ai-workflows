@@ -43,7 +43,12 @@ export class GitHubClient {
   async getPRFiles(owner: string, repo: string, pull_number: number) {
     const files = await this.request<GitHubFile[]>(`/repos/${owner}/${repo}/pulls/${pull_number}/files`);
     return files
-      .filter(f => f.status !== 'binary' && !f.filename.endsWith('.lock') && !f.filename.includes('package-lock.json'))
+      .filter(f => 
+        f.status !== 'binary' && 
+        !f.filename.startsWith('dist/') &&
+        !f.filename.endsWith('.lock') && 
+        !f.filename.includes('package-lock.json')
+      )
       .map(f => f.filename);
   }
 
