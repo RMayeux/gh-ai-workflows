@@ -1,3 +1,5 @@
+import { GitHubFile, GitHubPR, GitHubComment, GitHubLabel, GitHubResponse } from './types';
+
 export const githubVersion = '0.0.0';
 
 export class GitHubClient {
@@ -25,7 +27,7 @@ export class GitHubClient {
     }
 
     // Handle cases where we expect raw text (like diffs) instead of JSON
-    if (options.headers && (options.headers as any)['Accept'] === 'application/vnd.github.diff') {
+    if (headers.get('Accept') === 'application/vnd.github.diff') {
       return (await response.text()) as unknown as T;
     }
 
@@ -39,34 +41,34 @@ export class GitHubClient {
   }
 
   async getPRFiles(owner: string, repo: string, pull_number: number) {
-    const files = await this.request<any[]>(`/repos/${owner}/${repo}/pulls/${pull_number}/files`);
+    const files = await this.request<GitHubFile[]>(`/repos/${owner}/${repo}/pulls/${pull_number}/files`);
     return files
       .filter(f => f.status !== 'binary' && !f.filename.endsWith('.lock') && !f.filename.includes('package-lock.json'))
       .map(f => f.filename);
   }
 
   async getPRDetails(owner: string, repo: string, pull_number: number) {
-    return this.request<any>(`/repos/${owner}/${repo}/pulls/${pull_number}`);
+    return this.request<GitHubPR>(`/repos/${owner}/${repo}/pulls/${pull_number}`);
   }
 
-  async updatePR(owner: string, repo: string, pull_number: number, title?: string, body?: string): Promise<any> {
-    return this.request<any>(`/repos/${owner}/${repo}/pulls/${pull_number}`, {
+  async updatePR(owner: string, repo: string, pull_number: number, title?: string, body?: string): Promise<GitHubPR> {
+    return this.request<GitHubPR>(`/repos/${owner}/${repo}/pulls/${pull_number}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, body }),
     });
   }
 
-  async addLabels(owner: string, repo: string, pull_number: number, labels: string[]): Promise<any> {
-    return this.request<any>(`/repos/${owner}/${repo}/issues/${pull_number}/labels`, {
+  async addLabels(owner: string, repo: string, pull_number: number, labels: string[]): Promise<GitHubLabel[]> {
+    return this.request<GitHubLabel[]>(`/repos/${owner}/${repo}/issues/${pull_number}/labels`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ labels }),
     });
   }
 
-  async postComment(owner: string, repo: string, pull_number: number, body: string): Promise<any> {
-    return this.request<any>(`/repos/${owner}/${repo}/issues/${pull_number}/comments`, {
+  async postComment(owner: string, repo: string, pull_number: number, body: string): Promise<GitHubComment> {
+    return this.request<GitHubComment>(`/repos/${owner}/${repo}/issues/${pull_number}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ body }),
@@ -74,17 +76,17 @@ export class GitHubClient {
   }
 
   async listComments(owner: string, repo: string, pull_number: number) {
-    return this.request<any[]>(`/repos/${owner}/${repo}/issues/${pull_number}/comments`);
+    return this.request<GitHubComment[]>(`/repos/${owner}/${repo}/issues/${pull_number}/comments`);
   }
 
-  async deleteComment(owner: string, repo: string, pull_number: number, comment_id: number): Promise<any> {
-    return this.request<any>(`/repos/${owner}/${repo}/issues/${pull_number}/comments/${comment_id}`, {
+  async deleteComment(owner: string, repo: string, pull_number: number, comment_id: number): Promise<GitHubResponse> {
+    return this.request<GitHubResponse>(`/repos/${owner}/${repo}/issues/${pull_number}/comments/${comment_id}`, {
       method: 'DELETE',
     });
   }
 
-  async removeLabel(owner: string, repo: string, pull_number: number, label: string): Promise<any> {
-    return this.request<any>(`/repos/${owner}/${repo}/issues/${pull_number}/labels/${label}`, {
+  async removeLabel(owner: string, repo: string, pull_number: number, label: string): Promise<GitHubResponse> {
+    return this.request<GitHubResponse>(`/repos/${owner}/${repo}/issues/${pull_number}/labels/${label}`, {
       method: 'DELETE',
     });
   }

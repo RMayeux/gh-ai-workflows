@@ -1,4 +1,4 @@
-import { Logger } from './telemetry';
+// No import here
 
 export interface RunnerInputs {
   githubToken: string;
@@ -9,10 +9,10 @@ export interface RunnerInputs {
   repo: string;
   pullNumber: number;
   debug?: boolean;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
-type WorkflowFunction = (inputs: RunnerInputs) => Promise<any>;
+type WorkflowFunction = (inputs: RunnerInputs) => Promise<unknown>;
 
 /**
  * Creates a standardized runner for GitHub Action scripts.
@@ -32,7 +32,7 @@ export function createRunner(workflowFn: WorkflowFunction) {
       };
 
       const missingVars = Object.entries(requiredEnvVars)
-        .filter(([_, value]) => !value)
+        .filter(([ , value]) => !value)
         .map(([key]) => key);
 
       if (missingVars.length > 0) {
@@ -57,7 +57,6 @@ export function createRunner(workflowFn: WorkflowFunction) {
       // or match specific known optional patterns (like DOC_PATTERN)
       Object.keys(process.env).forEach(key => {
         if (key.startsWith('WORKFLOW_') || key === 'DOC_PATTERN' || key === 'PROJECT_CONTEXT' || key === 'MAX_TOKENS') {
-          const normalizedKey = key.toLowerCase().replace(/_/g, '');
           // Simple normalization: DOC_PATTERN -> docPattern
           const camelKey = key.toLowerCase().replace(/([-_][a-z])/g, group =>
             group.toUpperCase().replace('-', '').replace('_', '')

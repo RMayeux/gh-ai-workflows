@@ -9,11 +9,11 @@ describe('GitHubClient', () => {
     vi.stubGlobal('fetch', vi.fn());
   });
 
-  const mockFetchResponse = (data: any, ok = true, status = 200, isText = false) => {
+  const mockFetchResponse = (data: unknown, ok = true, status = 200, isText = false) => {
     return Promise.resolve({
       ok,
       status,
-      text: () => Promise.resolve(isText ? data : JSON.stringify(data)),
+      text: () => Promise.resolve(isText ? String(data) : JSON.stringify(data)),
       json: () => Promise.resolve(data),
     } as Response);
   };
