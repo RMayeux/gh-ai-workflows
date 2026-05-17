@@ -20,12 +20,6 @@ inputs:
     description: 'Number of commits to look back if no audit PR is found'
     required: false
     default: '10'
-  owner:
-    description: 'Repo Owner'
-    required: false
-  repo:
-    description: 'Repo Name'
-    required: false
   doc-pattern:
     description: 'Regex to find documentation files in the repository'
     required: true
@@ -44,9 +38,9 @@ runs:
         export API_KEY="${{ inputs.api-key }}"
         export GITHUB_TOKEN="${{ inputs.github-token }}"
         export DEBUG="${{ inputs.debug }}"
-        export GITHUB_REPOSITORY_OWNER="${{ inputs.owner || GITHUB_REPOSITORY%%/* }}"
-        export GITHUB_REPOSITORY_NAME="${{ inputs.repo || GITHUB_REPOSITORY#*/ }}"
-        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ inputs.pull-number || github.event.pull_request.number }}"
+        export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
+        export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
         export DOC_PATTERN="${{ inputs.doc-pattern }}"
         export LOOKBACK_COMMITS="${{ inputs.lookback-commits }}"
         node ${{ github.action_path }}/../../dist/doc-sync.mjs
