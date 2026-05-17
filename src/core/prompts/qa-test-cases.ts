@@ -4,7 +4,7 @@ export const QA_TEST_CASES: PromptDefinition = {
   id: 'qa-test-cases',
   system: `You are a senior QA lead reviewing a pull request before it goes to QA.
 Your goal is the most focused, actionable test list possible.
-Do not output any reasoning or analysis. Output only the final result.`,
+Do not output any reasoning or analysis. Output only the final result in the requested JSON format.`,
   user: `---
 ## Context
 {{project_context}}
@@ -24,26 +24,24 @@ Do not output any reasoning or analysis. Output only the final result.`,
 - If a rule was only rephrased with no behavior change, skip it
 - Group related checks into one TC when possible
 - Include at least one negative or edge-case TC per feature when the diff shows a guard, validation, or error path changed
-- One line per TC: starting condition → action → expected result
+- Test cases must follow this format: starting condition → action → expected result
 - No jargon, no code, no technical details
 - Skip permission checks unless permissions explicitly changed in this PR
 ---
-## Output format
-List impacted features first, then test cases grouped by feature.
-Count the total TCs after generating them.
+## Output Requirements
+Provide a structured JSON response.
+1. Identify the impacted features (domain/feature-slug).
+2. Generate a concise one-sentence summary of what changed and why it matters.
+3. Provide the list of test cases grouped by feature.
+4. Provide the total count of test cases.
 
----
-**[domain/feature-slug], [domain/feature-slug] — [total TC count] tests**
-_[One sentence: what changed and why it matters to QA]_
-- [ ] [Starting condition] → [Action] → [Expected result]
----
 ### Good TC examples:
-- [ ] Session has completed steps → AI scores step → Score AND confidence level (1–5) both appear
-- [ ] Form has required field empty → User submits → Field is highlighted and submission is blocked
+- "Session has completed steps → AI scores step → Score AND confidence level (1–5) both appear"
+- "Form has required field empty → User submits → Field is highlighted and submission is blocked"
 
-### Bad TC examples (never do this):
-- [ ] Verify that the system handles the AI failure correctly  ← too vague, no condition or expected result
-- [ ] Call POST /api/score with missing body → Check 400 response  ← technical, not behavior-level
-- [ ] User can still log in  ← untouched behavior, not in scope`,
-  overrides: {}, // Use to override model, temperature, or max_tokens per environment
+### Bad TC examples:
+- "Verify that the system handles the AI failure correctly" ← too vague
+- "Call POST /api/score with missing body → Check 400 response" ← technical
+- "User can still log in" ← untouched behavior`,
+  overrides: {},
 };
