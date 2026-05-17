@@ -79,8 +79,8 @@ export class GitHubClient {
     return this.request<GitHubComment[]>(`/repos/${owner}/${repo}/issues/${pull_number}/comments`);
   }
 
-  async deleteComment(owner: string, repo: string, pull_number: number, comment_id: number): Promise<GitHubResponse> {
-    return this.request<GitHubResponse>(`/repos/${owner}/${repo}/issues/${pull_number}/comments/${comment_id}`, {
+  async deleteComment(owner: string, repo: string, comment_id: number): Promise<GitHubResponse> {
+    return this.request<GitHubResponse>(`/repos/${owner}/${repo}/issues/comments/${comment_id}`, {
       method: 'DELETE',
     });
   }

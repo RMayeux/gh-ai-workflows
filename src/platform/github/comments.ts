@@ -17,7 +17,7 @@ export async function replaceBotComments(
     const botComments = comments.filter(c => c.body?.includes(identifier));
     
     for (const comment of botComments) {
-      await gh.deleteComment(owner, repo, pullNumber, comment.id);
+      await gh.deleteComment(owner, repo, comment.id);
     }
     
     if (botComments.length > 0) {
