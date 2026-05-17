@@ -1,4 +1,4 @@
-import { runPRMetadataWorkflow } from '../src/features/pr-metadata';
+import { runDocSyncWorkflow } from '@features/doc-sync';
 
 async function main() {
   const requiredEnvVars = {
@@ -8,7 +8,6 @@ async function main() {
     API_KEY: process.env.API_KEY,
     GITHUB_REPOSITORY_OWNER: process.env.GITHUB_REPOSITORY_OWNER,
     GITHUB_REPOSITORY_NAME: process.env.GITHUB_REPOSITORY_NAME,
-    GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER,
   };
 
   const missingVars = Object.entries(requiredEnvVars)
@@ -28,13 +27,14 @@ async function main() {
     apiKey: process.env.API_KEY || '',
     owner: process.env.GITHUB_REPOSITORY_OWNER || '',
     repo: process.env.GITHUB_REPOSITORY_NAME || '',
-    pullNumber: parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER || '0', 10),
-    maxTokens: process.env.MAX_TOKENS ? parseInt(process.env.MAX_TOKENS, 10) : 4096,
+    pullNumber: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER ? parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER, 10) : undefined,
+    lookbackCommits: process.env.LOOKBACK_COMMITS ? parseInt(process.env.LOOKBACK_COMMITS, 10) : 10,
+    docPattern: process.env.DOC_PATTERN || '.*\\.md',
     debug: process.env.DEBUG === 'true',
   };
 
   try {
-    await runPRMetadataWorkflow(inputs);
+    await runDocSyncWorkflow(inputs);
     process.exit(0);
   } catch (error) {
     console.error('Workflow failed:', error);

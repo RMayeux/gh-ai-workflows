@@ -1,42 +1,46 @@
-name: 'PR Review'
-description: 'AI-powered PR review and automated labeling'
+name: 'Doc Sync'
+description: 'Synchronizes project documentation with code changes in a PR'
 inputs:
   llm:
-    description: 'LLM Provider (openai, anthropic, gemini, mistral)'
+    description: 'LLM provider (openai, anthropic, gemini, mistral)'
     required: true
-    default: 'openai'
   model:
-    description: 'Model name'
+    description: 'LLM model name'
     required: true
-    default: 'gpt-4o'
   api-key:
     description: 'LLM API Key'
     required: true
   github-token:
     description: 'GitHub Token'
     required: true
-  max-tokens:
-    description: 'Maximum tokens for response'
+  pull-number:
+    description: 'PR Number (optional for audit mode)'
     required: false
-    default: '4096'
+  lookback-commits:
+    description: 'Number of commits to look back if no audit PR is found'
+    required: false
+    default: '10'
+  doc-pattern:
+    description: 'Regex to find documentation files in the repository'
+    required: true
   debug:
     description: 'Enable debug logging'
     required: false
     default: 'false'
-
 runs:
   using: 'composite'
   steps:
-    - name: 'Run PR Review'
+    - name: Run Doc Sync Workflow
       shell: bash
       run: |
         export LLM="${{ inputs.llm }}"
         export MODEL="${{ inputs.model }}"
         export API_KEY="${{ inputs.api-key }}"
         export GITHUB_TOKEN="${{ inputs.github-token }}"
-        export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"
         export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
         export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
-        node ${{ github.action_path }}/../../dist/pr-review.mjs
+        export DOC_PATTERN="${{ inputs.doc-pattern }}"
+        export LOOKBACK_COMMITS="${{ inputs.lookback-commits }}"
+        node ${{ github.action_path }}/../../dist/doc-sync.mjs

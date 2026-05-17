@@ -143,7 +143,6 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     for (const feature of result.impactedFeatures) {
       body += formatAIList(feature.featureSlug, feature.testCases, '- [ ] ');
     }
-    body += `\n---\n_Re-trigger by adding the \`qa-ready\` label._`;
 
     // Post comment
     await gh.postComment(owner, repo, pullNumber, body).catch(err => {

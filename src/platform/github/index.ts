@@ -51,6 +51,22 @@ export class GitHubClient {
     return this.request<GitHubPR>(`/repos/${owner}/${repo}/pulls/${pull_number}`);
   }
 
+  async listMergedPRs(owner: string, repo: string, state: string = 'closed') {
+    return this.request<GitHubPR[]>(`/repos/${owner}/${repo}/pulls?state=${state}&sort=updated&direction=desc`);
+  }
+
+  async listPRs(owner: string, repo: string, head: string, state: string = 'open') {
+    return this.request<GitHubPR[]>(`/repos/${owner}/${repo}/pulls?head=${head}&state=${state}`);
+  }
+
+  async createPR(owner: string, repo: string, title: string, head: string, base: string, body?: string): Promise<GitHubPR> {
+    return this.request<GitHubPR>(`/repos/${owner}/${repo}/pulls`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, head, base, body }),
+    });
+  }
+
   async updatePR(owner: string, repo: string, pull_number: number, title?: string, body?: string): Promise<GitHubPR> {
     return this.request<GitHubPR>(`/repos/${owner}/${repo}/pulls/${pull_number}`, {
       method: 'PATCH',
