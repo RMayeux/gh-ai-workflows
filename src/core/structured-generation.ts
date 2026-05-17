@@ -85,7 +85,7 @@ export async function generateStructured<T>(
     try {
       // Implementation of a simple timeout
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('LLM request timed out after 60 seconds')), 60000)
+        setTimeout(() => reject(new Error('LLM request timed out after 120 seconds')), 120000)
       );
 
       const response = await Promise.race([
@@ -101,7 +101,14 @@ export async function generateStructured<T>(
       }
       
       try {
-        const parsed = JSON.parse(cleaned);
+        let parsed = JSON.parse(cleaned);
+        
+        // If schema expects an object but we got a single-element array, unwrap it
+        if (schema instanceof z.ZodObject && Array.isArray(parsed) && parsed.length === 1) {
+          Logger.debug(`[StructuredGeneration] Unwrapping single-element array to match object schema`);
+          parsed = parsed[0];
+        }
+
         const validated = schema.parse(parsed);
         
         return {
@@ -114,13 +121,13 @@ export async function generateStructured<T>(
         const errorMessage = e instanceof Error ? e.message : String(e);
         
         if (attempts <= maxRetries) {
-          Logger.error(`[StructuredGeneration] Parsing/Validation failed: ${errorMessage}. Retrying... (Attempt ${attempts}/${maxRetries})`);
+          Logger.error(`[StructuredGeneration] Parsing/Validation failed: ${errorMessage}. Raw JSON: ${cleaned}. Retrying... (Attempt ${attempts}/${maxRetries})`);
           const delay = Math.pow(2, attempts) * 1000;
           await new Promise(resolve => setTimeout(resolve, delay));
           continue;
         }
         
-        Logger.error(`[StructuredGeneration] Parsing/Validation failed after max retries: ${errorMessage}`);
+        Logger.error(`[StructuredGeneration] Parsing/Validation failed after max retries: ${errorMessage}. Raw JSON: ${cleaned}`);
         return {
           success: false,
           error: `Format Error: ${errorMessage}`,
