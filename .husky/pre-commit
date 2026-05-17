@@ -1,0 +1,2 @@
+pnpm bundle
+git add dist/
