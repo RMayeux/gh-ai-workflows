@@ -93,7 +93,7 @@ export async function runDocSyncWorkflow(inputs: DocSyncInputs & { githubClient?
       const baselineSha = await findAuditBaseline(gh, owner, repo, lookbackCommits);
       Logger.log(`Baseline SHA: ${baselineSha}`);
       
-      codeDiff = runGitCommand(`git diff ${baselineSha}...HEAD`);
+      codeDiff = runGitCommand(`git diff ${baselineSha}...HEAD -- . ':!dist'`);
       if (!codeDiff) {
         Logger.log('No changes found between baseline and HEAD.');
         return { synced: false, changes: [] };

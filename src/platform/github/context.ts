@@ -29,9 +29,20 @@ export class ContextBuilder {
       : files;
 
     let processedDiff = diff;
+    
+    // Remove diff chunks related to the dist folder
+    const diffChunks = diff.split(/^diff --git /m);
+    const filteredChunks = diffChunks.filter(chunk => 
+      !chunk.startsWith('a/dist/') && !chunk.includes('--- a/dist/')
+    );
+    processedDiff = filteredChunks.join('diff --git ').trim();
+    if (processedDiff && !processedDiff.startsWith('diff --git')) {
+      processedDiff = 'diff --git ' + processedDiff;
+    }
+
     const maxDiffSize = options.maxDiffSize || 30000;
-    if (diff.length > maxDiffSize) {
-      processedDiff = diff.substring(0, maxDiffSize) + `\n\n... [Diff truncated to ${maxDiffSize} chars] ...`;
+    if (processedDiff.length > maxDiffSize) {
+      processedDiff = processedDiff.substring(0, maxDiffSize) + `\n\n... [Diff truncated to ${maxDiffSize} chars] ...`;
     }
 
     return {
