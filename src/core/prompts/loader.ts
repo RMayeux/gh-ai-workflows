@@ -63,7 +63,7 @@ export class PromptLoader {
     try {
       versions = await fs.readdir(promptDir);
     } catch {
-      throw new Error(`No versions found for prompt ${promptId}`);
+      throw new Error(`No versions found for prompt ${promptId} in ${this.promptsRoot}`);
     }
     
     // Simple semver-ish sort (highest version last)
@@ -79,7 +79,7 @@ export class PromptLoader {
     }).pop();
 
     if (!latestVersion) {
-      throw new Error(`No versions found for prompt ${promptId}`);
+      throw new Error(`No versions found for prompt ${promptId} in ${this.promptsRoot}`);
     }
 
     return this.load(promptId, latestVersion);
