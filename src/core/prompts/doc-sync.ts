@@ -20,19 +20,23 @@ Do not output any reasoning or analysis. Output only the final result.`,
 - If a feature was removed, flag the doc for deletion or update — do not keep stale content
 - If only internal implementation changed with no behavior or API impact, skip it
 - Do not rewrite sections that are still accurate
-- If no documentation changes are needed, return an empty changes array
+- If no documentation changes are needed, return an empty changes array and a summary stating so
 ---
 ## Output format
-Return a JSON array. If no changes are needed, return [].
+Return a JSON object matching the following structure:
 
 \`\`\`json
-[
-  {
-    "file": "relative/path/to/doc.md",
-    "action": "update" | "create" | "delete",
-    "content": "Full updated file content (omit for delete)"
-  }
-]
+{
+  "summary": "A concise summary of the documentation updates needed based on the code changes",
+  "changes": [
+    {
+      "path": "relative/path/to/doc.md",
+      "action": "update" | "create" | "delete",
+      "content": "The full new content of the file (empty if action is delete)",
+      "explanation": "Short explanation of why this change is needed"
+    }
+  ]
+}
 \`\`\``,
   overrides: {},
 };
