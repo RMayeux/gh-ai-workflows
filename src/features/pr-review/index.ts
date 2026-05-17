@@ -3,8 +3,6 @@ import { generateStructured, ProviderRegistry, PromptEngine, PromptLoader, Logge
 import { registerAllProviders } from '@platform/llm';
 import { PRReviewSchema } from '@features/pr-review/schema';
 import path from 'node:path';
-import { dirname } from 'path'
-import { fileURLToPath } from 'url'
 
 export interface PRReviewWorkflowInputs {
   githubToken: string;
@@ -50,9 +48,7 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
 
     // 3. Load and Render Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
-    const __filename = fileURLToPath(import.meta.url)
-    const __dirname = dirname(__filename)
-    const loader = new PromptLoader(path.resolve(__dirname, '../../src/core/prompts'));
+    const loader = new PromptLoader(path.resolve('./src/core/prompts'));
     const definition = await loader.loadWithFallback('pr-review', promptVersion).catch(err => {
       throw new Error(`Failed to load prompt: ${err.message}`);
     });
