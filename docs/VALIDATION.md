@@ -28,7 +28,7 @@ The core of the platform is the `generateStructured` function. Instead of hoping
 
 1. **Raw Response**: The LLM returns a string.
 2. **JSON Cleaning**: The `cleanJson` utility removes markdown code fences (e.g., ` ```json ... ``` `).
-3. **JSON Parsing**: `JSON.parse()` converts the string to a JavaScript object.
+3. **JSON Parsing**: `JSON.parse()` converts the string to a JavaScript object. If a single-element array is returned when an object is expected, the platform automatically unwraps the value to match the schema.
 4. **Schema Validation**: `schema.parse(object)` checks the object against the Zod schema.
 
 ### Self-Repair Loop

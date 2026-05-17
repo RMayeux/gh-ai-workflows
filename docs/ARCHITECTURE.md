@@ -48,7 +48,7 @@ The platform is designed to grow without architectural rewrites through several 
 - **Fallback Logic**: The `FallbackProvider` allows wrapping multiple providers, ensuring high availability by automatically failing over to secondary models.
 - **Context Builders**: The `ContextBuilder` in `src/platform/github` provides a reusable way to gather environment-specific data (diffs, file lists), allowing new workflows to be created quickly.
 - **Cost Tracking**: `GenerateResponse` includes an optional `cost` field to allow future implementation of budget monitoring and cost reporting.
-- **Scalability**: Large repositories are handled via a standard truncation and prioritization strategy in the `ContextBuilder`, preventing token limit overflows.
+- **Scalability**: Large repositories are handled via a standard truncation and prioritization strategy in the `ContextBuilder` (e.g., ignoring the `dist/` folder), preventing token limit overflows.
 
 ### Bundle System
 
@@ -77,4 +77,3 @@ Shared logic should reside in `src/core` or a specialized directory (e.g., `src/
 - **Turbo**: For fast testing and linting.
 - **Vitest**: For unit and integration testing.
 - **ESLint & Prettier**: For code quality and formatting.
-- **Changesets**: For versioning and publishing.

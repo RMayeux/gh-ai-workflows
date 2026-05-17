@@ -5,7 +5,7 @@ This document defines how `gh-ai-workflows` is versioned, released, and maintain
 ## 1. Versioning Strategy
 
 ### Packages (Core, Providers, etc.)
-We use **Semantic Versioning (SemVer)** for all internal packages. Versioning is managed via [Changesets](https://github.com/changesets/changesets).
+We use **Semantic Versioning (SemVer)** for all internal packages. Versioning is managed manually.
 
 - **Patch**: Bug fixes and non-breaking internal changes.
 - **Minor**: New features, new provider support, or non-breaking prompt updates.
@@ -25,12 +25,11 @@ uses: your-org/gh-ai-workflows/workflows/pr-metadata@v1
 
 ### Local Development
 1. Make changes to a package.
-2. Run `npx changeset` to create a changeset file describing the change.
-3. Commit the changeset file.
+2. Commit the changes to the repository.
 
 ### Automated Release
 The `releases/publish.yml` workflow handles the following:
-1. **Version Bump**: Runs `changeset version` to update `package.json` files and generate changelogs.
+1. **Version Bump**: Update `package.json` files and generate changelogs.
 2. **Tagging**: Creates a Git tag for the release.
 3. **Publishing**: Publishes packages to the registry (if applicable).
 4. **Release Notes**: Generates a GitHub Release with the accumulated changelogs.
