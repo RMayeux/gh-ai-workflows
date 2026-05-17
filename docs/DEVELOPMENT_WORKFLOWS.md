@@ -38,8 +38,11 @@ import { runMyWorkflow } from '@features/my-new-workflow';
 createRunner(runMyWorkflow).run();
 ```
 
-### 5. Define the Action
-Create `workflows/[name]/action.yml`. Define the necessary inputs (LLM, API Key, GitHub Token) and map them to environment variables.
+### 5. Define the Action & Trigger
+Create `workflows/[name]/action.yml` and `.github/workflows/[name].yml`.
+- **Automatic Trigger**: Use `on: pull_request: types: [opened]` for the initial run.
+- **Manual Trigger**: Use `on: workflow_dispatch` with `pull_number` input for re-triggers.
+- **Standardized Inputs**: Always include `pull_number`, `owner`, and `repo` in your dispatch configuration.
 
 ## ✅ Developer Checklist
 - [ ] Does the prompt explicitly forbid "reasoning" or "analysis"?

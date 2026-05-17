@@ -1,29 +1,15 @@
-# QA Test Cases
+# AI QA Test Cases
 
-Generates actionable QA test cases by analyzing PR diffs and matching them against documentation.
+Generates a set of QA test cases based on the code diff and project documentation.
 
-## Usage
+## 🚀 How to Trigger
 
-```yaml
-- uses: RMayeux/gh-ai-workflows/workflows/qa-test-cases@main
-  with:
-    llm: 'gemini'
-    model: 'gemini-1.5-pro'
-    api-key: ${{ secrets.GEMINI_API_KEY }}
-    github-token: ${{ secrets.GITHUB_TOKEN }}
-    doc-pattern: 'docs/features/.*\.md'
-    project-context: 'Project description'
-    debug: 'false'
-```
+### 1. Manual Trigger
+To generate test cases for a PR:
+1. Go to the **Actions** tab in GitHub.
+2. Select **AI QA Test Cases** from the left sidebar.
+3. Click **Run workflow**.
+4. Enter the **Pull Request Number** and click **Run workflow**.
 
-## Inputs
-
-| Input | Required | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `llm` | Yes | - | Provider (`openai`, `anthropic`, `gemini`, `mistral`) |
-| `model` | Yes | - | Model name |
-| `api-key` | Yes | - | LLM API Key |
-| `github-token` | Yes | - | GitHub Token |
-| `doc-pattern` | No | - | Regex to find documentation files |
-| `project-context` | No | - | General project context |
-| `debug` | No | `false` | Enable debug logging |
+## ⚙️ Configuration
+Inputs are configured in `.github/workflows/qa-test-cases.yml`.

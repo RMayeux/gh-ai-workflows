@@ -15,6 +15,15 @@ inputs:
   github-token:
     description: 'GitHub Token'
     required: true
+  pull-number:
+    description: 'PR Number'
+    required: false
+  owner:
+    description: 'Repo Owner'
+    required: false
+  repo:
+    description: 'Repo Name'
+    required: false
   max-tokens:
     description: 'Maximum tokens for response'
     required: false
@@ -36,7 +45,7 @@ runs:
         export GITHUB_TOKEN="${{ inputs.github-token }}"
         export MAX_TOKENS="${{ inputs.max-tokens }}"
         export DEBUG="${{ inputs.debug }}"
-        export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
-        export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
-        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
+        export GITHUB_REPOSITORY_OWNER="${{ inputs.owner || GITHUB_REPOSITORY%%/* }}"
+        export GITHUB_REPOSITORY_NAME="${{ inputs.repo || GITHUB_REPOSITORY#*/ }}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ inputs.pull-number || github.event.pull_request.number }}"
         node ${{ github.action_path }}/../../dist/pr-review.mjs

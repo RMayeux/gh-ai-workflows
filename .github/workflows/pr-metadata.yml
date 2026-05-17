@@ -2,28 +2,46 @@ name: 'AI PR Metadata'
 
 on:
   pull_request:
-    types: [opened, labeled]
+    types: [opened]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: 'Pull Request Number'
+        required: true
+      owner:
+        description: 'Repository Owner'
+        required: false
+      repo:
+        description: 'Repository Name'
+        required: false
+      debug:
+        description: 'Enable Debugging'
+        type: boolean
+        default: false
 
 jobs:
   metadata:
     runs-on: ubuntu-latest
-    if: github.event.action == 'opened' || (github.event.action == 'labeled' && github.event.label.name == 'update-metadata')
     permissions:
       pull-requests: write
       contents: read
       issues: write
     steps:
-      - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
+      - uses: actions/checkout@v4
+      - name: 'Set PR Context'
+        run: |
+          echo "PR_NUMBER=${{ github.event.pull_request.number || github.event.inputs.pull_number }}" >> $GITHUB_ENV
+          echo "OWNER=${{ github.event.repository.owner.login || github.event.inputs.owner }}" >> $GITHUB_ENV
+          echo "REPO=${{ github.event.repository.name || github.event.inputs.repo }}" >> $GITHUB_ENV
+          echo "DEBUG=${{ github.event.inputs.debug || 'false' }}" >> $GITHUB_ENV
       - name: 'Run AI PR Metadata'
         uses: ./workflows/pr-metadata
         with:
           llm: 'gemini'
           model: 'gemma-4-31b-it'
           api-key: ${{ secrets.GEMINI_API_KEY }}
-          debug: 'true'
+          debug: ${{ env.DEBUG }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: 'Remove label'
-        if: github.event.action == 'labeled' && github.event.label.name == 'update-metadata'
-        run: gh pr edit ${{ github.event.pull_request.number }} --remove-label 'update-metadata'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          pull-number: ${{ env.PR_NUMBER }}
+          owner: ${{ env.OWNER }}
+          repo: ${{ env.REPO }}

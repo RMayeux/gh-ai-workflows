@@ -1,27 +1,18 @@
-# PR Metadata
+# AI PR Metadata
 
-Generates automated PR summaries, label suggestions, and breaking change detection.
+Generates an AI-powered summary and metadata for a Pull Request.
 
-## Usage
+## 🚀 How to Trigger
 
-```yaml
-- uses: RMayeux/gh-ai-workflows/workflows/pr-metadata@main
-  with:
-    llm: 'gemini'
-    model: 'gemini-1.5-pro'
-    api-key: ${{ secrets.GEMINI_API_KEY }}
-    github-token: ${{ secrets.GITHUB_TOKEN }}
-    max-tokens: '4096'
-    debug: 'false'
-```
+### 1. Automatic
+Runs automatically when a PR is **opened**.
 
-## Inputs
+### 2. Manual (Re-trigger)
+If you need to update the metadata:
+1. Go to the **Actions** tab in GitHub.
+2. Select **AI PR Metadata** from the left sidebar.
+3. Click **Run workflow**.
+4. Enter the **Pull Request Number** and click **Run workflow**.
 
-| Input | Required | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `llm` | Yes | - | Provider (`openai`, `anthropic`, `gemini`, `mistral`) |
-| `model` | Yes | - | Model name |
-| `api-key` | Yes | - | LLM API Key |
-| `github-token` | Yes | - | GitHub Token |
-| `max-tokens` | No | `4096` | Max tokens for generation |
-| `debug` | No | `false` | Enable debug logging |
+## ⚙️ Configuration
+Inputs are configured in `.github/workflows/pr-metadata.yml`.
