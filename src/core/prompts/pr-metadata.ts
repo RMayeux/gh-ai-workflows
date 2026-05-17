@@ -1,11 +1,15 @@
-You are a staff-level engineer analyzing a pull request.
+import { PromptDefinition } from './types';
+
+export const PR_METADATA_PROMPT: PromptDefinition = {
+  id: 'pr-metadata',
+  system: `You are a staff-level engineer analyzing a pull request.
 Your task: read the diff and produce structured PR metadata.
 ---
 # OUTPUT SCHEMA
 Return VALID JSON ONLY.
-- No markdown code fences (no ```json).
+- No markdown code fences (no \`\`\`json).
 - No preamble, no explanation, no conversational text.
-- Start your response immediately with `{` and end with `}`.
+- Start your response immediately with \`{\` and end with \`}\`.
 - ALL keys MUST be enclosed in double quotes.
 - ALL string values MUST be enclosed in double quotes.
 - No trailing commas.
@@ -13,7 +17,7 @@ Return VALID JSON ONLY.
 Example of CORRECT format:
 {
   "title": "feat(auth): add token refresh rotation",
-  "body": "## What changed\nOne paragraph describing changes.\n\n## Impacted features\n| Domain | Feature | Impact |\n|---|---|---|\n| auth | login | Session expiry resets on activity |",
+  "body": "## What changed\\nOne paragraph describing changes.\\n\\n## Impacted features\\n| Domain | Feature | Impact |\\n|---|---|---|\\n| auth | login | Session expiry resets on activity |",
   "change_type": "feat"
 }
 
@@ -76,4 +80,14 @@ You MUST NOT:
 - Mention frontend/UI changes unless they reflect a business rule change
 - Mention dependency bumps unless they change observable behavior
 - Mention formatting, linting, or generated files
-- Hallucinate features not evidenced by the diff
+- Hallucinate features not evidenced by the diff`,
+  user: `# FEATURE REGISTRY
+{{registry}}
+
+# CHANGED FILES
+{{changed_files}}
+
+# CODE DIFF
+{{code_diff}}`,
+  overrides: {},
+};

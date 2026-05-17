@@ -12,7 +12,6 @@ export interface PRMetadataWorkflowInputs {
   owner: string;
   repo: string;
   pullNumber: number;
-  promptVersion: string;
   maxTokens?: number;
   debug?: boolean;
 }
@@ -27,7 +26,6 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
     owner,
     repo,
     pullNumber,
-    promptVersion,
     maxTokens = 4096,
     debug = false,
     githubClient: injectedClient,
@@ -51,8 +49,8 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
     Logger.log('Step 3: Loading and rendering prompt...');
 
 
-    const loader = new PromptLoader(path.resolve('./src/core/prompts'));
-    const definition = await loader.loadWithFallback('pr-metadata', promptVersion).catch(err => {
+    const loader = new PromptLoader();
+    const definition = await loader.load('pr-metadata').catch(err => {
       throw new Error(`Failed to load prompt: ${err.message}`);
     });
     

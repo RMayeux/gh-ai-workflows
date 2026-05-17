@@ -12,7 +12,6 @@ export interface PRReviewWorkflowInputs {
   owner: string;
   repo: string;
   pullNumber: number;
-  promptVersion: string;
   maxTokens?: number;
   debug?: boolean;
 }
@@ -26,7 +25,6 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     owner,
     repo,
     pullNumber,
-    promptVersion,
     maxTokens = 4096,
     debug = false,
     githubClient: injectedClient,
@@ -48,8 +46,8 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
 
     // 3. Load and Render Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
-    const loader = new PromptLoader(path.resolve('./src/core/prompts'));
-    const definition = await loader.loadWithFallback('pr-review', promptVersion).catch(err => {
+    const loader = new PromptLoader();
+    const definition = await loader.load('pr-review').catch(err => {
       throw new Error(`Failed to load prompt: ${err.message}`);
     });
     
