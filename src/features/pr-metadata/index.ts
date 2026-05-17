@@ -3,6 +3,8 @@ import { generateStructured, ProviderRegistry, PromptEngine, PromptLoader, Logge
 import { registerAllProviders } from '@platform/llm';
 import { PRMetadataSchema } from '@features/pr-metadata/schema';
 import path from 'node:path';
+import { dirname } from 'path'
+import { fileURLToPath } from 'url'
 
 export interface PRMetadataWorkflowInputs {
   githubToken: string;
@@ -16,6 +18,7 @@ export interface PRMetadataWorkflowInputs {
   maxTokens?: number;
   debug?: boolean;
 }
+
 
 export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & { githubClient?: GitHubClient }) {
   const {
@@ -48,6 +51,9 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
 
     // 3. Load Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
+
+    const __filename = fileURLToPath(import.meta.url)
+    const __dirname = dirname(__filename)
     const loader = new PromptLoader(path.resolve(__dirname, '../../src/core/prompts'));
     const definition = await loader.loadWithFallback('pr-metadata', promptVersion).catch(err => {
       throw new Error(`Failed to load prompt: ${err.message}`);
