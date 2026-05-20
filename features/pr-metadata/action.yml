@@ -1,0 +1,39 @@
+name: 'PR Metadata'
+description: 'Generates PR metadata using AI'
+inputs:
+  llm:
+    description: 'LLM provider (openai, anthropic, gemini, mistral)'
+    required: true
+  model:
+    description: 'LLM model name'
+    required: true
+  api-key:
+    description: 'LLM API Key'
+    required: true
+  github-token:
+    description: 'GitHub Token'
+    required: true
+  max-tokens:
+    description: 'Maximum tokens for generation'
+    required: false
+    default: '4096'
+  debug:
+    description: 'Enable debug logging'
+    required: false
+    default: 'false'
+runs:
+  using: 'composite'
+  steps:
+    - name: Run PR Metadata Workflow
+      shell: bash
+      run: |
+        export LLM="${{ inputs.llm }}"
+        export MODEL="${{ inputs.model }}"
+        export API_KEY="${{ inputs.api-key }}"
+        export GITHUB_TOKEN="${{ inputs.github-token }}"
+        export MAX_TOKENS="${{ inputs.max-tokens }}"
+        export DEBUG="${{ inputs.debug }}"
+        export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
+        export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
+        export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
+        node ${{ github.action_path }}/../../../dist/pr-metadata/index.js

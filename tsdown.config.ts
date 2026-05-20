@@ -2,11 +2,7 @@ import { defineConfig } from 'tsdown'
 import { readdirSync, statSync } from 'fs'
 import { join } from 'path'
 
-const scriptsDir = './scripts'
-
-const entries = readdirSync(scriptsDir)
-  .filter(name => name.endsWith('.ts') && statSync(join(scriptsDir, name)).isFile())
-  .map(name => `${scriptsDir}/${name}`)
+const entries = 'features/*/index.ts'
 
 export default defineConfig({
   entry: entries,
