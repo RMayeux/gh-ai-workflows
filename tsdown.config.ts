@@ -1,6 +1,4 @@
 import { defineConfig } from 'tsdown'
-import { readdirSync, statSync } from 'fs'
-import { join } from 'path'
 
 const entries = 'features/*/index.ts'
 

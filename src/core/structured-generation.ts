@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LLMProvider, GenerateRequest, GenerateResponse } from './types/llm';
+import { LLMProvider, GenerateRequest, GenerateResponse } from '../platform/llm/types';
 import { Logger } from './telemetry';
 import { LLMError } from './errors/llm-errors';
 

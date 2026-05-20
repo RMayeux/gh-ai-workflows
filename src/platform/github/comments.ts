@@ -1,5 +1,5 @@
 import { GitHubClient } from './index';
-import { Logger } from '../../core';
+import { Logger } from '../../core/telemetry';
 
 export async function replaceBotComments(
   gh: GitHubClient,

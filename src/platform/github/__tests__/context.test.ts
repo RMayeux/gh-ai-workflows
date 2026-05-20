@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GitHubClient } from '../index';
 
-describe('GitHubClient', () => {
+describe('GitHubClient Context', () => {
   const token = 'test-token';
   const client = new GitHubClient(token);
 
@@ -91,56 +91,6 @@ describe('GitHubClient', () => {
         title: 'New Title',
         body: 'New Body',
       });
-    });
-  });
-
-  describe('addLabels', () => {
-    it('should use POST method and send labels', async () => {
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse({}));
-      
-      await client.addLabels('owner', 'repo', 1, ['bug', 'urgent']);
-      
-      const options = vi.mocked(fetch).mock.calls[0][1];
-      expect(options?.method).toBe('POST');
-      expect(JSON.parse(options?.body as string)).toEqual({
-        labels: ['bug', 'urgent'],
-      });
-    });
-  });
-
-  describe('postComment', () => {
-    it('should post a comment using POST', async () => {
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse({}));
-      
-      await client.postComment('owner', 'repo', 1, 'AI Review');
-      
-      const options = vi.mocked(fetch).mock.calls[0][1];
-      expect(options?.method).toBe('POST');
-      expect(JSON.parse(options?.body as string)).toEqual({
-        body: 'AI Review',
-      });
-    });
-  });
-
-  describe('listComments', () => {
-    it('should return a list of comments', async () => {
-      const mockComments = [{ id: 1, body: 'comment 1' }, { id: 2, body: 'comment 2' }];
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockComments));
-      
-      const result = await client.listComments('owner', 'repo', 1);
-      
-      expect(result).toEqual(mockComments);
-    });
-  });
-
-  describe('deleteComment', () => {
-    it('should use DELETE method', async () => {
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse({}));
-      
-      await client.deleteComment('owner', 'repo', 1, 123);
-      
-      const options = vi.mocked(fetch).mock.calls[0][1];
-      expect(options?.method).toBe('DELETE');
     });
   });
 });

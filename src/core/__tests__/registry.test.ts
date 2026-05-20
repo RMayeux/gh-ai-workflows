@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ProviderRegistry } from '../registry';
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../types/llm';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../../platform/llm/types';
 
 class MockProvider implements LLMProvider {
   readonly providerId = 'mock';

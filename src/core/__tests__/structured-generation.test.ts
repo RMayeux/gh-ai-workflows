@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 import { generateStructured, cleanJson } from '../structured-generation';
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../types/llm';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../../platform/llm/types';
 
 class MockProvider implements LLMProvider {
   readonly providerId = 'mock';
