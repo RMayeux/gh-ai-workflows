@@ -1,8 +1,5 @@
 import { GitHubClient } from './index';
 
-/**
- * Synchronizes PR labels by adding new ones and removing specified old ones.
- */
 export async function syncLabels(
   gh: GitHubClient,
   owner: string,

@@ -1,41 +1,23 @@
 # gh-ai-workflows
 
-`gh-ai-workflows` is a provider-agnostic library for orchestrating AI within GitHub Actions. It provides an abstraction layer over LLM providers to prevent vendor lock-in and employs Zod schemas to ensure structured, validated outputs in CI/CD pipelines.
+`gh-ai-workflows` is a provider-agnostic library for orchestrating AI within GitHub Actions, used by GitHub Action workflows.
 
-### Why this exists
-Most AI integrations in GitHub Actions are tightly coupled to a specific provider's API and rely on raw text responses, which are prone to failure. This library decouples workflow logic from the AI provider and prompt format, allowing teams to switch models (e.g., from OpenAI to Gemini) via configuration without modifying their workflow YAML files.
+## Available actions
 
----
+| Action name | What it does | Ref path |
+| :--- | :--- | :--- |
+| PR Metadata | Generates AI-driven PR titles, bodies, and labels | `gh-ai-workflows/features/pr-metadata` |
+| PR Review | Performs AI-driven PR reviews | `gh-ai-workflows/features/pr-review` |
+| AI Doc Sync | Synchronizes documentation with code changes | `gh-ai-workflows/features/doc-sync` |
+| AI QA Test Cases | Generates QA test cases from PR changes | `gh-ai-workflows/features/qa-test-cases` |
 
-### Available Actions
+## Setup
 
-- [PR Metadata](./workflows/pr-metadata/README.md)
-- [PR Review](./workflows/pr-review/README.md)
-- [AI Doc Sync](./workflows/doc-sync/README.md)
-- [AI QA Test Cases](./workflows/qa-test-cases/README.md)
+```bash
+pnpm install
+pnpm run bundle
+```
 
----
+## Contributing
 
-### Contributing
-
-This project is managed as a pnpm monorepo.
-
-**Technical Stack**
-- TypeScript (Strict mode)
-- pnpm Workspaces
-- Vitest (Testing)
-- Turbo (Build system)
-
-**Process**
-1. Follow the standards defined in `docs/ARCHITECTURE.md`.
-2. Use `npx changeset` to document changes for versioning.
-3. Ensure all new provider implementations adhere to the `LLMProvider` interface in `src/core`.
-
----
-
-### Documentation
-All detailed guides are located in the `/docs` directory:
-- **User Guide**: Setup and configuration.
-- **Architecture**: Internal design and provider system.
-- **Providers**: API specifications.
-- **Release Policy**: Versioning and compatibility.
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
