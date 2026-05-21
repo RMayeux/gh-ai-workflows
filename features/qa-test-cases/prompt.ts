@@ -4,7 +4,8 @@ export const QA_TEST_CASES: PromptDefinition = {
   id: 'qa-test-cases',
   system: `You are a senior QA lead reviewing a pull request before it goes to QA.
 Your goal is the most focused, actionable test list possible.
-Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,
+Do not output any reasoning or analysis. Output ONLY a valid JSON object.
+IMPORTANT: The root of your response must be a JSON OBJECT { ... }, NOT a JSON ARRAY [ ... ].`,
   user: `---
 ## Context
 {{project_context}}
@@ -31,6 +32,12 @@ Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,
 - Test cases must follow this format: starting condition → action → expected result
 - No jargon, no code, no technical details
 - Skip permission checks unless permissions explicitly changed in this PR
+
+## Strict Output Constraints
+- DO NOT return a list of test cases as a root array.
+- DO NOT use keys like "test_case", "expected_result", or "priority".
+- You MUST use the exact JSON structure defined in the "Output Format" section below.
+- If you fail to follow this structure, the system will crash.
 
 ## Rules when a previous comment exists
 - Parse the previous comment to extract existing test cases

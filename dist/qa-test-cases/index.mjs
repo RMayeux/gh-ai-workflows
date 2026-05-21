@@ -1,6 +1,7 @@
 import{c as e,d as t,h as n,i as r,l as i,m as a,n as o,o as s,p as c,r as l,s as u,t as d,u as f}from"../llm-DwD2cvkQ.mjs";import{t as p}from"../file-system-DdvyYQ2J.mjs";import{t as m}from"../date-BLOVFp3M.mjs";const h=i({summary:f().describe(`One sentence describing what changed and why it matters to QA`),impactedFeatures:s(i({featureSlug:f().describe(`The domain/feature-slug`),testCases:s(f()).describe(`List of test cases in "condition → action → expected result" format`)})),unchangedTestCases:s(f()).describe(`Test cases from the previous comment that are still valid`),retiredTestCases:s(f()).describe(`Test cases from the previous comment that are no longer relevant`),totalTests:e().describe(`Total number of active test cases (impacted + unchanged)`)});i({githubToken:f().min(1),llm:f().min(1),model:f().min(1),apiKey:f().min(1),owner:f().min(1),repo:f().min(1),pullNumber:e().int().positive(),projectContext:f().optional().describe(`General context about the project to help the AI understand the domain.`),docPattern:f().optional().describe(`Optional regex to find documentation files in the repository. If provided, all matching files will be included in the prompt.`),debug:u().optional()});const g={id:`qa-test-cases`,system:`You are a senior QA lead reviewing a pull request before it goes to QA.
 Your goal is the most focused, actionable test list possible.
-Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,user:`---
+Do not output any reasoning or analysis. Output ONLY a valid JSON object.
+IMPORTANT: The root of your response must be a JSON OBJECT { ... }, NOT a JSON ARRAY [ ... ].`,user:`---
 ## Context
 {{project_context}}
 
@@ -26,6 +27,12 @@ Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,user:
 - Test cases must follow this format: starting condition → action → expected result
 - No jargon, no code, no technical details
 - Skip permission checks unless permissions explicitly changed in this PR
+
+## Strict Output Constraints
+- DO NOT return a list of test cases as a root array.
+- DO NOT use keys like "test_case", "expected_result", or "priority".
+- You MUST use the exact JSON structure defined in the "Output Format" section below.
+- If you fail to follow this structure, the system will crash.
 
 ## Rules when a previous comment exists
 - Parse the previous comment to extract existing test cases
