@@ -97,12 +97,31 @@ export class GitHubClient {
   }
 
   async listComments(owner: string, repo: string, pull_number: number) {
-    return this.request<GitHubComment[]>(`/repos/${owner}/${repo}/issues/${pull_number}/comments`);
+    let comments: GitHubComment[] = [];
+    let page = 1;
+    while (true) {
+      const pageComments = await this.request<GitHubComment[]>(
+        `/repos/${owner}/${repo}/issues/${pull_number}/comments?page=${page}&per_page=100`
+      );
+      if (pageComments.length === 0) break;
+      comments.push(...pageComments);
+      if (pageComments.length < 100) break;
+      page++;
+    }
+    return comments;
   }
 
   async deleteComment(owner: string, repo: string, comment_id: number): Promise<GitHubResponse> {
     return this.request<GitHubResponse>(`/repos/${owner}/${repo}/issues/comments/${comment_id}`, {
       method: 'DELETE',
+    });
+  }
+
+  async updateComment(owner: string, repo: string, comment_id: number, body: string): Promise<GitHubComment> {
+    return this.request<GitHubComment>(`/repos/${owner}/${repo}/issues/comments/${comment_id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ body }),
     });
   }
 
@@ -114,5 +133,5 @@ export class GitHubClient {
 }
 
 export * from './context';
-export { replaceBotComments } from './comments';
+export { upsertBotComment } from './comments';
 export { syncLabels } from './labels';

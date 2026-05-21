@@ -18,7 +18,9 @@ const VALID_QA = {
       ],
     },
   ],
-  totalTests: 3,
+  unchangedTestCases: ['Some old test case'],
+  retiredTestCases: ['Some retired test case'],
+  totalTests: 4,
 };
 
 describe('QATestCasesSchema', () => {

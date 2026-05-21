@@ -1,4 +1,4 @@
-import{a as e,d as t,f as n,h as r,i,l as a,m as o,n as s,o as c,r as l,s as u,t as d,u as f}from"../llm-DEcbmguB.mjs";const p=a({title:f().min(1,`Title is required`).max(72,`Title must be under 72 characters`),body:f().min(1,`Body is required`),change_type:e([`feat`,`fix`,`refactor`,`perf`,`docs`,`test`,`build`,`ci`,`chore`]),breaking:u().default(!1),doc_impact:u().default(!1),doc_slugs:c(f()).default([])}),m={id:`pr-metadata`,system:`You are a staff-level engineer analyzing a pull request.
+import{a as e,d as t,f as n,h as r,i,l as a,m as o,n as s,o as c,r as l,s as u,t as d,u as f}from"../llm-DwD2cvkQ.mjs";const p=a({title:f().min(1,`Title is required`).max(72,`Title must be under 72 characters`),body:f().min(1,`Body is required`),change_type:e([`feat`,`fix`,`refactor`,`perf`,`docs`,`test`,`build`,`ci`,`chore`]),breaking:u().default(!1),doc_impact:u().default(!1),doc_slugs:c(f()).default([])}),m={id:`pr-metadata`,system:`You are a staff-level engineer analyzing a pull request.
 Your task: read the diff and produce structured PR metadata.
 ---
 # OUTPUT SCHEMA

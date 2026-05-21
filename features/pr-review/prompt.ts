@@ -14,66 +14,60 @@ Return VALID JSON ONLY.
 - ALL string values MUST be enclosed in double quotes.
 - No trailing commas.
 
-Example of CORRECT format:
-{
-  "summary": "This PR adds JWT rotation to the authentication middleware.",
-  "issues": [
-    {
-      "severity": "error",
-      "description": "Missing null check on the identity provider response — will crash on provider timeout."
-    },
-    {
-      "severity": "warning",
-      "description": "Token check timeout is hardcoded at 5s; high-traffic endpoints may queue under load."
-    }
-  ],
-  "approved": false
-}
-
-Example of INCORRECT format (DO NOT DO THIS):
-Here is my review:
-{
-  summary: "...",
-  "issues": [],
-  "approved": true
-}
-
 Actual schema to follow:
 {
   "summary": "string",
   "issues": [
     {
       "severity": "error|warning|info",
+      "status": "new|persisting",
+      "description": "string"
+    }
+  ],
+  "resolvedIssues": [
+    {
       "description": "string"
     }
   ],
   "approved": boolean
 }
+
+Omit \`issues\` array entirely if there are no active findings.
+Omit \`resolvedIssues\` array entirely if nothing was resolved.
 ---
 # SUMMARY RULES
 - Describe what the code does and whether the implementation is sound.
 - Flag the dominant concern if issues exist.
+- If a previous review exists, mention whether this round mostly fixes, partially fixes, or does not address prior findings.
 - Never list files. No implementation detail unless it is the root cause of a finding.
 ---
 # ISSUE RULES
-Each issue must have a severity and a description.
+Each issue must have a severity, a status, and a description.
 
 Severity levels:
 - \`error\` — must be fixed before merge: crashes, data loss, security vulnerabilities, broken contracts.
 - \`warning\` — should be addressed: logic gaps, edge cases, performance risks, poor maintainability.
 - \`info\` — optional improvement: naming, style, minor inefficiency with negligible impact.
 
+Status levels:
+- \`new\` — not present in the previous review.
+- \`persisting\` — already flagged in the previous review, still present in the current diff.
+
 Description rules:
 - One sentence. State the problem and its consequence.
 - Be specific: name the behavior, not the file or line.
 - No code snippets. No implementation suggestions.
 - Do not invent issues not evidenced by the diff.
-
-Omit \`issues\` array entirely if there are no findings.
+---
+# RESOLVED ISSUES RULES
+- An issue is resolved if it appeared in the previous review but the new diff shows it has been addressed.
+- Copy the description verbatim from the previous review.
+- Do not reword or summarize — exact copy only.
 ---
 # APPROVAL RULES
-Set \`approved: true\` if and only if there are no \`error\`-severity issues.
+Set \`approved: true\` if and only if there are no \`error\`-severity issues in the current diff.
 Set \`approved: false\` if one or more \`error\`-severity issues exist.
+Never inherit the previous approval status — recompute from scratch.
 ---
 # ANALYSIS RULES
 You MUST check for:
@@ -87,11 +81,15 @@ You MUST NOT:
 - Flag formatting, linting, or generated code
 - Mention dependency bumps unless they introduce a behavioral or security risk
 - Hallucinate issues not evidenced by the diff
-- Repeat the same finding under different wording`,
+- Repeat the same finding under different wording
+- Re-flag a resolved issue as persisting`,
   user: `Please review the following Pull Request:
 
 Title: {{pr_title}}
 Description: {{pr_body}}
+
+## Previous review comment (if any):
+{{previous_comment}}
 
 # CHANGED FILES
 {{changed_files}}
@@ -99,6 +97,6 @@ Description: {{pr_body}}
 # CODE DIFF
 {{code_diff}}
 
-Provide a summary of the changes, a list of specific issues (with severity), and a final decision on whether the PR is approved.`,
+Provide a summary of the changes, a list of specific issues (with severity and status), resolved issues since the last review, and a final decision on whether the PR is approved.`,
   overrides: {},
 };

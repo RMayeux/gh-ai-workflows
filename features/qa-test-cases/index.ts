@@ -6,10 +6,11 @@ import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
-import { QATestCasesSchema, QATestCasesInputs } from './schema';
-import { replaceBotComments } from '@platform/github/comments';
+import { QATestCasesSchema, QATestCasesInputs, QATestCasesInputsSchema } from './schema';
+import { upsertBotComment } from '@platform/github/comments';
 import { formatAIList } from '@core/utils/markdown';
 import { collectDocs } from '@core/utils/file-system';
+import { formatTimestamp } from '@core/utils/date';
 import { QA_TEST_CASES } from './prompt';
 
 export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githubClient?: GitHubClient }) {
@@ -56,10 +57,20 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     // 4. Load Prompt
     Logger.log('Step 4: Loading and rendering prompt...');
     
+    const comments = await gh.listComments(owner, repo, pullNumber);
+    const botComment = comments
+      .filter(c => c.body?.includes('🧪 QA Test Cases'))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const previousCommentBody = botComment?.body || '';
+
+    const date = formatTimestamp();
+
     const prompt = PromptEngine.render(QA_TEST_CASES, {
       project_context: projectContext || 'No project context provided.',
       code_diff: context.diff,
       documentation: projectDocs || 'No documentation provided for these changes.',
+      previous_comment: previousCommentBody,
+      date,
     });
 
     // 5. Generate Structured Output
@@ -87,20 +98,29 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     // 6. GitHub Integration
     Logger.log('Step 6: Updating GitHub PR...');
 
-    await replaceBotComments(gh, owner, repo, pullNumber, '🧪 QA Test Cases');
+    let body = `### 🧪 QA Test Cases — updated ${date}\n\n`;
+    body += `> ${result.summary} (**Total active tests: ${result.totalTests}**)\n\n`;
 
-    // Format output
-    const featureList = result.impactedFeatures.map(f => f.featureSlug).join(', ');
-    let body = `## 🧪 QA Test Cases\n\n`;
-    body += `**${result.totalTests} tests — ${featureList}**\n`;
-    body += `_${result.summary}_\n\n`;
-
-    for (const feature of result.impactedFeatures) {
-      body += formatAIList(feature.featureSlug, feature.testCases, '- [ ] ');
+    if (result.impactedFeatures.length > 0) {
+      body += `**New / updated**\n`;
+      for (const feature of result.impactedFeatures) {
+        body += `**${feature.featureSlug}**\n`;
+        body += feature.testCases.map(tc => `- [ ] ${tc}`).join('\n') + '\n';
+      }
+      body += `\n`;
     }
 
-    // Post comment
-    await gh.postComment(owner, repo, pullNumber, body).catch(err => {
+    if (result.unchangedTestCases.length > 0) {
+      body += `**Already covered**\n`;
+      body += result.unchangedTestCases.map(tc => `- [ ] ${tc}`).join('\n') + '\n\n';
+    }
+
+    if (result.retiredTestCases.length > 0) {
+      body += `**Retired**\n`;
+      body += result.retiredTestCases.map(tc => `~~- ${tc}~~`).join('\n') + '\n';
+    }
+
+    await upsertBotComment(gh, owner, repo, pullNumber, '🧪 QA Test Cases', body).catch(err => {
       throw new Error(`Failed to post QA comment: ${err.message}`);
     });
 
@@ -114,41 +134,28 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
 }
 
 async function main() {
-  const requiredEnvVars = {
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    LLM: process.env.LLM,
-    MODEL: process.env.MODEL,
-    API_KEY: process.env.API_KEY,
-    GITHUB_REPOSITORY_OWNER: process.env.GITHUB_REPOSITORY_OWNER,
-    GITHUB_REPOSITORY_NAME: process.env.GITHUB_REPOSITORY_NAME,
-    GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER,
-  };
-
-  const missingVars = Object.entries(requiredEnvVars)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  if (missingVars.length > 0) {
-    console.error('Missing required environment variables:');
-    console.error(missingVars.join(', '));
-    process.exit(1);
-  }
-
-  const inputs: any = {
-    githubToken: process.env.GITHUB_TOKEN || '',
-    llm: process.env.LLM || '',
-    model: process.env.MODEL || '',
-    apiKey: process.env.API_KEY || '',
-    owner: process.env.GITHUB_REPOSITORY_OWNER || '',
-    repo: process.env.GITHUB_REPOSITORY_NAME || '',
-    pullNumber: parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER || '0', 10),
-    projectContext: process.env.PROJECT_CONTEXT || '',
-    docPattern: process.env.DOC_PATTERN || '',
+  const envInputs = {
+    githubToken: process.env.GITHUB_TOKEN,
+    llm: process.env.LLM,
+    model: process.env.MODEL,
+    apiKey: process.env.API_KEY,
+    owner: process.env.GITHUB_REPOSITORY_OWNER,
+    repo: process.env.GITHUB_REPOSITORY_NAME,
+    pullNumber: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER ? parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER, 10) : undefined,
+    projectContext: process.env.PROJECT_CONTEXT,
+    docPattern: process.env.DOC_PATTERN,
     debug: process.env.DEBUG === 'true',
   };
 
+  const validation = QATestCasesInputsSchema.safeParse(envInputs);
+  if (!validation.success) {
+    console.error('Invalid or missing environment variables:');
+    console.error(JSON.stringify(validation.error.format(), null, 2));
+    process.exit(1);
+  }
+
   try {
-    await runQATestCasesWorkflow(inputs);
+    await runQATestCasesWorkflow(validation.data);
     process.exit(0);
   } catch (error) {
     console.error('Workflow failed:', error);

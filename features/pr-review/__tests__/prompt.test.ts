@@ -7,6 +7,7 @@ const MOCK_INPUTS = {
   pr_body: 'This PR implements JWT based auth.',
   changed_files: 'src/auth.ts, src/user.ts',
   code_diff: 'diff --git a/src/auth.ts b/src/auth.ts\n--- a/src/auth.ts\n+++ b/src/auth.ts\n@@ -1,1 +1,1 @@\n-const x = 1;\n+const x = 2;',
+  previous_comment: 'Previous review content',
 };
 
 describe('PR_REVIEW_PROMPT', () => {
@@ -17,6 +18,7 @@ describe('PR_REVIEW_PROMPT', () => {
     expect(rendered.user).toContain(`Description: ${MOCK_INPUTS.pr_body}`);
     expect(rendered.user).toContain(`# CHANGED FILES\n${MOCK_INPUTS.changed_files}`);
     expect(rendered.user).toContain(`# CODE DIFF\n${MOCK_INPUTS.code_diff}`);
+    expect(rendered.user).toContain(`## Previous review comment (if any):\n${MOCK_INPUTS.previous_comment}`);
   });
 
   it('should handle variables with special regex characters without corrupting the prompt', () => {
@@ -24,12 +26,14 @@ describe('PR_REVIEW_PROMPT', () => {
       ...MOCK_INPUTS,
       pr_title: 'feat: handle [special] characters {like these} and $vars',
       pr_body: 'Check this out: *bold* and _italic_ and `code` and \\backslashes\\',
+      previous_comment: 'Previous [Special] {Comment}',
     };
     
     const rendered = PromptEngine.render(PR_REVIEW_PROMPT, SPECIAL_INPUTS);
     
     expect(rendered.user).toContain(`Title: ${SPECIAL_INPUTS.pr_title}`);
     expect(rendered.user).toContain(`Description: ${SPECIAL_INPUTS.pr_body}`);
+    expect(rendered.user).toContain(`## Previous review comment (if any):\n${SPECIAL_INPUTS.previous_comment}`);
   });
 
   it('should be deterministic', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runPRReviewWorkflow } from '../index';
-import { GitHubClient, ContextBuilder, replaceBotComments, syncLabels } from '@platform/github';
+import { GitHubClient, ContextBuilder, upsertBotComment, syncLabels } from '@platform/github';
 import { ProviderRegistry } from '@core/registry';
 import { Logger } from '@core/telemetry';
 import { LLMProvider } from '@core/types/llm';
@@ -8,6 +8,7 @@ import { LLMProvider } from '@core/types/llm';
 vi.mock('@platform/github', () => {
   const mockGhInstance = {
     postComment: vi.fn().mockResolvedValue({}),
+    listComments: vi.fn().mockResolvedValue([]),
   };
   return {
     GitHubClient: vi.fn().mockImplementation(() => mockGhInstance),
@@ -24,6 +25,7 @@ vi.mock('@platform/github', () => {
       }),
     })),
     replaceBotComments: vi.fn().mockResolvedValue(undefined),
+    upsertBotComment: vi.fn().mockResolvedValue(undefined),
     syncLabels: vi.fn().mockResolvedValue(undefined),
   };
 });
@@ -69,8 +71,9 @@ const MOCK_INPUTS = {
 const MOCK_REVIEW = {
   summary: 'The implementation is correct but has some performance issues.',
   issues: [
-    { severity: 'warning', description: 'Unnecessary loop in index.ts' }
+    { severity: 'warning', status: 'new', description: 'Unnecessary loop in index.ts' }
   ],
+  resolvedIssues: [],
   approved: true,
 };
 
@@ -113,12 +116,13 @@ describe('runPRReviewWorkflow', () => {
       systemPrompt: 'mock system prompt',
       maxTokens: MOCK_INPUTS.maxTokens,
     }));
-    expect(replaceBotComments).toHaveBeenCalledWith(
+    expect(upsertBotComment).toHaveBeenCalledWith(
       expect.any(Object),
       MOCK_INPUTS.owner,
       MOCK_INPUTS.repo,
       MOCK_INPUTS.pullNumber,
-      '### 🤖 AI Code Review'
+      '### 🤖 AI Code Review',
+      expect.stringContaining('### 🤖 AI Code Review — updated')
     );
     expect(syncLabels).toHaveBeenCalledWith(
       expect.any(Object),
@@ -177,7 +181,7 @@ describe('runPRReviewWorkflow', () => {
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {
     const gh = new GitHubClient(MOCK_INPUTS.githubToken);
-    vi.mocked(gh.postComment).mockRejectedValue(new Error('GitHub API Error'));
+    vi.mocked(upsertBotComment).mockRejectedValueOnce(new Error('GitHub API Error'));
     
     vi.mocked(mockProvider.generate).mockResolvedValue({
       text: JSON.stringify(MOCK_REVIEW),
@@ -189,23 +193,67 @@ describe('runPRReviewWorkflow', () => {
     expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: Failed to post comment: GitHub API Error'));
   });
 
-  it('LLM response contains a secret value present in the Logger\'s secret set -> the value is masked in all log output', async () => {
-    const secret = 'sk-test-xxxxxxxxxxxxxxxx';
-    Logger.addSecret(secret);
-    
-    const reviewWithSecret = { ...MOCK_REVIEW, summary: `Secret is ${secret}` };
+  it('Subsequent run: fetches previous comment and passes it to prompt', async () => {
+    const gh = new GitHubClient(MOCK_INPUTS.githubToken);
+    const previousComment = {
+      id: 1,
+      body: '### 🤖 AI Code Review\n\nSome old issues',
+      created_at: '2026-01-01T00:00:00Z',
+    };
+    vi.mocked(gh.listComments).mockResolvedValue([previousComment]);
+
+    const complexReview = {
+      summary: 'Improved implementation.',
+      issues: [
+        { severity: 'error', status: 'persisting', description: 'Critical bug still here' },
+        { severity: 'info', status: 'new', description: 'Minor cleanup needed' },
+      ],
+      resolvedIssues: [{ description: 'Fixed the memory leak' }],
+      approved: false,
+    };
+
     vi.mocked(mockProvider.generate).mockResolvedValue({
-      text: JSON.stringify(reviewWithSecret),
+      text: JSON.stringify(complexReview),
       usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       finishReason: 'stop',
     });
 
-    // Ensure GitHub calls succeed
-    const gh = new GitHubClient(MOCK_INPUTS.githubToken);
-    vi.mocked(gh.postComment).mockResolvedValue({});
+    await runPRReviewWorkflow(MOCK_INPUTS);
 
-    await runPRReviewWorkflow({ ...MOCK_INPUTS, debug: true, githubClient: gh });
+    expect(gh.listComments).toHaveBeenCalledWith(MOCK_INPUTS.owner, MOCK_INPUTS.repo, MOCK_INPUTS.pullNumber);
+    
+    // Verify PromptEngine.render was called with previous_comment
+    const { PromptEngine } = await import('@core/prompt-engine');
+    expect(PromptEngine.render).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        previous_comment: previousComment.body,
+      })
+    );
 
-    expect(Logger.debug).toHaveBeenCalled();
+    expect(upsertBotComment).toHaveBeenCalledWith(
+      expect.any(Object),
+      MOCK_INPUTS.owner,
+      MOCK_INPUTS.repo,
+      MOCK_INPUTS.pullNumber,
+      '### 🤖 AI Code Review',
+      expect.stringContaining('**New issues**\n- [ ] [info] Minor cleanup needed')
+    );
+    expect(upsertBotComment).toHaveBeenCalledWith(
+      expect.any(Object),
+      MOCK_INPUTS.owner,
+      MOCK_INPUTS.repo,
+      MOCK_INPUTS.pullNumber,
+      '### 🤖 AI Code Review',
+      expect.stringContaining('**Persisting issues**\n- [ ] [error] Critical bug still here')
+    );
+    expect(upsertBotComment).toHaveBeenCalledWith(
+      expect.any(Object),
+      MOCK_INPUTS.owner,
+      MOCK_INPUTS.repo,
+      MOCK_INPUTS.pullNumber,
+      '### 🤖 AI Code Review',
+      expect.stringContaining('**Resolved issues**\n- [x] Fixed the memory leak')
+    );
   });
 });

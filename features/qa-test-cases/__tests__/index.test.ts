@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runQATestCasesWorkflow } from '../index';
 import { GitHubClient, ContextBuilder } from '@platform/github';
-import { replaceBotComments } from '@platform/github/comments';
+import { upsertBotComment } from '@platform/github/comments';
 import { ProviderRegistry } from '@core/registry';
 import { Logger } from '@core/telemetry';
 import { LLMProvider } from '@core/types/llm';
@@ -9,6 +9,7 @@ import { LLMProvider } from '@core/types/llm';
 vi.mock('@platform/github', () => {
   const mockGhInstance = {
     postComment: vi.fn().mockResolvedValue({}),
+    listComments: vi.fn().mockResolvedValue([]),
   };
   return {
     GitHubClient: vi.fn().mockImplementation(() => mockGhInstance),
@@ -28,7 +29,7 @@ vi.mock('@platform/github', () => {
 });
 
 vi.mock('@platform/github/comments', () => ({
-  replaceBotComments: vi.fn().mockResolvedValue(undefined),
+  upsertBotComment: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@core/registry', () => ({
@@ -78,6 +79,8 @@ const MOCK_QA_RESULT = {
       testCases: ['Cond → Action → Result'],
     },
   ],
+  unchangedTestCases: [],
+  retiredTestCases: [],
   totalTests: 1,
 };
 
@@ -119,21 +122,17 @@ describe('runQATestCasesWorkflow', () => {
       prompt: 'mock user prompt',
       systemPrompt: 'mock system prompt',
     }));
-    expect(replaceBotComments).toHaveBeenCalledWith(
+    expect(upsertBotComment).toHaveBeenCalledWith(
       expect.any(Object),
       MOCK_INPUTS.owner,
       MOCK_INPUTS.repo,
       MOCK_INPUTS.pullNumber,
-      '🧪 QA Test Cases'
+      '🧪 QA Test Cases',
+      expect.stringContaining('### 🧪 QA Test Cases — updated')
     );
     
     const gh = new GitHubClient(MOCK_INPUTS.githubToken);
-    expect(gh.postComment).toHaveBeenCalledWith(
-      MOCK_INPUTS.owner,
-      MOCK_INPUTS.repo,
-      MOCK_INPUTS.pullNumber,
-      expect.stringContaining('## 🧪 QA Test Cases')
-    );
+    expect(gh.postComment).not.toHaveBeenCalled();
   });
 
   it('LLM returns malformed JSON -> generateStructured retries -> succeeds on second attempt', async () => {
@@ -184,7 +183,7 @@ describe('runQATestCasesWorkflow', () => {
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {
     const gh = new GitHubClient(MOCK_INPUTS.githubToken);
-    vi.mocked(gh.postComment).mockRejectedValue(new Error('GitHub API Error'));
+    vi.mocked(upsertBotComment).mockRejectedValueOnce(new Error('GitHub API Error'));
     
     vi.mocked(mockProvider.generate).mockResolvedValue({
       text: JSON.stringify(MOCK_QA_RESULT),
@@ -194,5 +193,59 @@ describe('runQATestCasesWorkflow', () => {
 
     await expect(runQATestCasesWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('Failed to post QA comment: GitHub API Error');
     expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: Failed to post QA comment: GitHub API Error'));
+  });
+
+  it('Subsequent run: fetches previous comment and passes it to prompt', async () => {
+    const gh = new GitHubClient(MOCK_INPUTS.githubToken);
+    const previousComment = {
+      id: 1,
+      body: '🧪 QA Test Cases\n\nSome old TCs',
+      created_at: '2026-01-01T00:00:00Z',
+    };
+    vi.mocked(gh.listComments).mockResolvedValue([previousComment]);
+
+    const complexResult = {
+      summary: 'Complex update.',
+      impactedFeatures: [{ featureSlug: 'feat-a', testCases: ['New TC'] }],
+      unchangedTestCases: ['Old TC 1'],
+      retiredTestCases: ['Old TC 2'],
+      totalTests: 2,
+    };
+
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(complexResult),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
+    });
+
+    await runQATestCasesWorkflow(MOCK_INPUTS);
+
+    expect(gh.listComments).toHaveBeenCalledWith(MOCK_INPUTS.owner, MOCK_INPUTS.repo, MOCK_INPUTS.pullNumber);
+    
+    // Verify PromptEngine.render was called with previous_comment
+    const { PromptEngine } = await import('@core/prompt-engine');
+    expect(PromptEngine.render).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        previous_comment: previousComment.body,
+      })
+    );
+
+    expect(upsertBotComment).toHaveBeenCalledWith(
+      expect.any(Object),
+      MOCK_INPUTS.owner,
+      MOCK_INPUTS.repo,
+      MOCK_INPUTS.pullNumber,
+      '🧪 QA Test Cases',
+      expect.stringContaining('**Already covered**\n- [ ] Old TC 1')
+    );
+    expect(upsertBotComment).toHaveBeenCalledWith(
+      expect.any(Object),
+      MOCK_INPUTS.owner,
+      MOCK_INPUTS.repo,
+      MOCK_INPUTS.pullNumber,
+      '🧪 QA Test Cases',
+      expect.stringContaining('**Retired**\n~~- Old TC 2~~')
+    );
   });
 });

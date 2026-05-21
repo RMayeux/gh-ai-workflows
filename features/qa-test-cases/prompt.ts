@@ -4,7 +4,8 @@ export const QA_TEST_CASES: PromptDefinition = {
   id: 'qa-test-cases',
   system: `You are a senior QA lead reviewing a pull request before it goes to QA.
 Your goal is the most focused, actionable test list possible.
-Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,
+Do not output any reasoning or analysis. Output ONLY a valid JSON object.
+Do not rename keys. Do not add new keys. Do not nest differently than the example below.`,
   user: `---
 ## Context
 {{project_context}}
@@ -14,6 +15,10 @@ Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,
 
 ## Documentation:
 {{documentation}}
+
+## Previous QA comment (if any):
+{{previous_comment}}
+
 ---
 ## Rules
 - Read the diff to understand what changed
@@ -27,15 +32,39 @@ Do not output any reasoning or analysis. Output ONLY a valid JSON object.`,
 - Test cases must follow this format: starting condition → action → expected result
 - No jargon, no code, no technical details
 - Skip permission checks unless permissions explicitly changed in this PR
+
+## Rules when a previous comment exists
+- Parse the previous comment to extract existing test cases
+- A TC is "unchanged" if the behavior it covers has not changed in the new diff — copy it verbatim into unchangedTestCases
+- A TC is "retired" if the behavior it covers no longer exists or was replaced — copy its text into retiredTestCases
+- A TC is "new" or "updated" if it covers something new or changed — add it to impactedFeatures as usual
+- Never rewrite or paraphrase unchanged or retired TCs — copy them character for character
+- If no previous comment exists, return empty arrays for unchangedTestCases and retiredTestCases
+
 ---
 ## Output Format
-You must return a JSON object with exactly these keys:
-- "summary": (string) A concise one-sentence summary of what changed and why it matters to QA.
-- "impactedFeatures": (array of objects) Each object must have:
-    - "featureSlug": (string) The domain/feature-slug (e.g., "auth/login").
-    - "testCases": (array of strings) Each string must be a test case in the "condition → action → expected result" format.
-- "totalTests": (number) The total number of test cases across all features.
+You must return a JSON object that matches EXACTLY this structure — no extra keys, no renamed keys:
 
+{
+  "summary": "The scoring step now returns a confidence level alongside the score.",
+  "impactedFeatures": [
+    {
+      "featureSlug": "scoring/confidence",
+      "testCases": [
+        "Session has completed steps → AI scores step → Score AND confidence level (1–5) both appear"
+      ]
+    }
+  ],
+  "unchangedTestCases": [
+    "Form has required field empty → User submits → Field is highlighted and submission is blocked"
+  ],
+  "retiredTestCases": [
+    "User submits form with score only → Score appears without confidence"
+  ],
+  "totalTests": 2
+}
+
+---
 ### Good TC examples:
 - "Session has completed steps → AI scores step → Score AND confidence level (1–5) both appear"
 - "Form has required field empty → User submits → Field is highlighted and submission is blocked"
