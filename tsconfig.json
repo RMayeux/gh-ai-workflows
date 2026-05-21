@@ -13,7 +13,6 @@
       "@platform/*": ["src/platform/*"],
       "@features/*": ["features/*"]
     },
-    "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }
