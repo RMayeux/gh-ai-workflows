@@ -205,8 +205,9 @@ describe('runDocSyncWorkflow', () => {
     });
 
     const workflowPromise = runDocSyncWorkflow(MOCK_INPUTS);
+    const rejection = expect(workflowPromise).rejects.toThrow('LLM Generation failed: Format Error: Unexpected token');
     await vi.runAllTimersAsync();
-    await expect(workflowPromise).rejects.toThrow('LLM Generation failed: Format Error: Unexpected token');
+    await rejection;
   });
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {

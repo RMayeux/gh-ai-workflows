@@ -40,9 +40,17 @@ describe('LLM Utils', () => {
       
       vi.useFakeTimers();
       const promise = withRetry(fn, { maxRetries: 2, initialDelay: 100 });
+      const handledPromise = promise.catch(e => e);
       
       await vi.runAllTimersAsync();
-      await expect(promise).rejects.toThrow('Transient Error');
+      const result = await handledPromise;
+      
+      expect(result).toBeInstanceOf(Error);
+      if (result instanceof Error) {
+        expect(result.message).toBe('Transient Error');
+      } else {
+        throw new Error('Expected Error');
+      }
       expect(fn).toHaveBeenCalledTimes(3); // initial + 2 retries
       vi.useRealTimers();
     });
@@ -52,9 +60,17 @@ describe('LLM Utils', () => {
         
         vi.useFakeTimers();
         const promise = withRetry(fn, { maxRetries: 1, initialDelay: 100 });
+        const handledPromise = promise.catch(e => e);
         
         await vi.runAllTimersAsync();
-        await expect(promise).rejects.toThrow('Generic Error');
+        const result = await handledPromise;
+        
+        expect(result).toBeInstanceOf(Error);
+        if (result instanceof Error) {
+          expect(result.message).toBe('Generic Error');
+        } else {
+          throw new Error('Expected Error');
+        }
         expect(fn).toHaveBeenCalledTimes(2);
         vi.useRealTimers();
     });
@@ -84,9 +100,17 @@ describe('LLM Utils', () => {
       
       vi.useFakeTimers();
       const promise = withTimeout(fn, 500);
+      const handledPromise = promise.catch(e => e);
       
       await vi.runAllTimersAsync();
-      await expect(promise).rejects.toThrow('Operation timed out after 500ms');
+      const result = await handledPromise;
+      
+      expect(result).toBeInstanceOf(Error);
+      if (result instanceof Error) {
+        expect(result.message).toBe('Operation timed out after 500ms');
+      } else {
+        throw new Error('Expected Error');
+      }
       vi.useRealTimers();
     });
   });

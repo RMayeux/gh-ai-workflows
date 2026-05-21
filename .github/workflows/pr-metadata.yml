@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
       - name: 'Run AI PR Metadata'
-        uses: ./workflows/pr-metadata
+        uses: ./features/pr-metadata
         with:
           llm: 'gemini'
           model: 'gemma-4-31b-it'

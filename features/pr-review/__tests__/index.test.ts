@@ -157,8 +157,9 @@ describe('runPRReviewWorkflow', () => {
     });
 
     const workflowPromise = runPRReviewWorkflow(MOCK_INPUTS);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Review failed: Format Error/);
     await vi.runAllTimersAsync();
-    await expect(workflowPromise).rejects.toThrow(/LLM Review failed: Format Error/);
+    await rejection;
   });
 
   it('LLM returns JSON that fails Zod validation -> same retry and failure behavior as above', async () => {
@@ -169,8 +170,9 @@ describe('runPRReviewWorkflow', () => {
     });
 
     const workflowPromise = runPRReviewWorkflow(MOCK_INPUTS);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Review failed: Format Error/);
     await vi.runAllTimersAsync();
-    await expect(workflowPromise).rejects.toThrow(/LLM Review failed: Format Error/);
+    await rejection;
   });
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {

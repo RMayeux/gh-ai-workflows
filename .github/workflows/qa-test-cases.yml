@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: 'Run AI QA Test Cases'
-        uses: ./workflows/qa-test-cases
+        uses: ./features/qa-test-cases
         with:
           llm: 'gemini'
           model: 'gemma-4-31b-it'
