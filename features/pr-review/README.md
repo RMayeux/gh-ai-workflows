@@ -1,6 +1,6 @@
 # PR Review
 
-Performs AI-driven PR reviews by analyzing code diffs.
+Performs AI-driven PR reviews by analyzing code diffs and tracking issues across multiple iterations.
 
 ## Inputs
 
