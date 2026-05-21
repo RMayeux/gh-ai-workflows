@@ -1,0 +1,41 @@
+import{a as e,c as t,d as n,h as r,i,l as a,m as o,n as s,o as c,r as l,s as u,t as d,u as f}from"../llm-DEcbmguB.mjs";import{t as p}from"../file-system-BzTzD_ME.mjs";import{existsSync as m,mkdirSync as h,writeFileSync as g}from"node:fs";import _ from"node:path";import{execSync as v}from"node:child_process";const y=a({summary:f().describe(`Summary of the documentation updates needed based on the code changes`),changes:c(a({path:f().describe(`Relative path to the documentation file`),action:e([`create`,`update`,`delete`]).describe(`The action to perform on the file`),content:f().describe(`The full new content of the file (empty string if action is delete)`),explanation:f().describe(`Short explanation of why this change is needed`)})).describe(`List of suggested documentation changes`)}).strict();a({githubToken:f().min(1),llm:f().min(1),model:f().min(1),apiKey:f().min(1),owner:f().min(1),repo:f().min(1),pullNumber:t().int().positive().optional(),lookbackCommits:t().int().positive().default(10).describe(`Number of commits to look back if no audit PR is found`),docPattern:f().describe(`Regex to find documentation files in the repository`),debug:u().optional()});const b={id:`doc-sync`,system:`You are an expert technical writer ensuring documentation stays perfectly synchronized with the codebase.
+Your goal is the most precise, minimal set of documentation changes needed — no more, no less.
+Maintain the existing tone, style, and structure of the documentation at all times.
+Do not output any reasoning or analysis. Output only the final result.
+You MUST always respond with a single JSON object — never a bare array. The root must be an object with exactly two keys: "summary" and "changes".`,user:`---
+## PR code changes:
+{{code_diff}}
+## Existing documentation:
+{{documentation}}
+---
+## Rules
+- Analyze the diff to identify what features, APIs, or behaviors changed
+- Only update documentation that is directly affected by this diff
+- If a new feature was added with no existing doc, specify where a new file should be created following the project's existing structure
+- If a feature was removed, flag the doc for deletion or update — do not keep stale content
+- If only internal implementation changed with no behavior or API impact, skip it
+- Do not rewrite sections that are still accurate
+- If no documentation changes are needed, return an empty changes array and a summary stating so
+---
+## Output format
+You MUST return a single JSON object — not an array, not markdown, not any wrapper. The root level must be an object.
+
+\`\`\`json
+{
+  "summary": "A concise summary of the documentation updates needed based on the code changes",
+  "changes": [
+    {
+      "path": "relative/path/to/doc.md",
+      "action": "update" | "create" | "delete",
+      "content": "The full new content of the file (empty string if action is delete)",
+      "explanation": "Short explanation of why this change is needed"
+    }
+  ]
+}
+\`\`\`
+
+CRITICAL: The response root MUST be a JSON object with "summary" (string) and "changes" (array). Do NOT return a bare array at the top level.`,overrides:{}};function x(e){try{return v(e,{encoding:`utf8`}).trim()}catch(t){throw o.error(`Git command failed: ${e}\nError: ${t.stderr||t.message}`),t}}async function S(e,t,n,r){o.log(`Searching for last merged audit PR...`);try{let r=(await e.listMergedPRs(t,n)).find(e=>e.merged_at&&(e.title.startsWith(`docs: sync documentation`)||e.title.includes(`Documentation Sync`)));if(r)return o.log(`Found last audit PR #${r.number}. Using its merge commit as baseline.`),(await e.request(`/repos/${t}/${n}/pulls/${r.number}`)).merge_commit_sha}catch(e){o.warn(`Failed to search PR history: ${e instanceof Error?e.message:String(e)}`)}o.log(`No audit PR found. Falling back to lookback of ${r} commits.`);try{return x(`git rev-list -n 1 HEAD~${r}`)}catch{return o.warn(`Lookback of ${r} commits failed (likely fewer commits in history). Falling back to first commit.`),x(`git rev-list --max-parents=0 HEAD`)}}async function C(e){let{githubToken:t,llm:a,model:c,apiKey:u,owner:f,repo:v,pullNumber:C,lookbackCommits:w=10,docPattern:T,debug:E=!1,githubClient:D}=e;E&&o.debug(`Running Doc Sync Workflow for ${f}/${v}${C?`#${C}`:` (Audit Mode)`}`);try{o.log(`Step 1: Initializing GitHub Client...`);let e=D||new n(t),O=new r(e),k=``,A=`main`;if(C)o.log(`Step 2: Fetching PR #${C} diff...`),k=(await O.buildPRContext(f,v,C).catch(e=>{throw Error(`Failed to build PR context: ${e instanceof Error?e.message:String(e)}`)})).diff,A=(await e.getPRDetails(f,v,C)).base.ref;else{o.log(`Step 2: Audit Mode - Computing diff from baseline to HEAD...`),x(`git fetch origin main`),x(`git checkout main`),x(`git pull origin main`);let t=await S(e,f,v,w);if(o.log(`Baseline SHA: ${t}`),k=x(`git diff ${t}...HEAD -- . ':!dist'`),!k)return o.log(`No changes found between baseline and HEAD.`),{synced:!1,changes:[]}}o.log(`Step 3: Searching for documentation matching pattern: ${T}...`);let j=p(T);j||o.warn(`No documentation found matching the provided pattern.`),o.log(`Step 4: Loading and rendering prompt...`);let M=s.render(b,{code_diff:k,documentation:j||`No documentation provided for these changes.`});o.log(`Step 5: Generating doc updates using ${a}:${c}...`),d();let N=await i(l.create(a,{apiKey:u,model:c}),y,{prompt:M.user,systemPrompt:M.system},{maxRetries:3,jsonMode:!0}).catch(e=>{throw Error(`LLM request failed: ${e instanceof Error?e.message:String(e)}`)});if(!N.success)throw Error(`LLM Generation failed: ${N.error}`);let P=N.data;if(E&&o.debug(`Generated Doc Updates:`,P),P.changes.length===0)return o.log(`No documentation updates needed.`),{synced:!1,changes:[]};o.log(`Step 6: Applying changes to a sync branch...`);let F=C?`bot/docs-sync-${C}`:`bot/docs-sync-audit-${Date.now()}`;x(`git config user.name "github-actions[bot]"`),x(`git config user.email "github-actions[bot]@users.noreply.github.com"`),x(`git checkout -B ${F} origin/${A}`);for(let e of P.changes){let t=_.join(process.cwd(),e.path),n=_.dirname(t);e.action===`create`||e.action===`update`?(m(n)||h(n,{recursive:!0}),g(t,e.content,`utf8`),o.log(`Updated: ${e.path}`)):e.action===`delete`&&m(t)&&(x(`git rm ${e.path}`),o.log(`Deleted: ${e.path}`))}x(`git add .`),x(`git commit -m "${(C?`docs: sync documentation for PR #${C}\n\n${P.summary}`:`docs: sync documentation audit\n\n${P.summary}`).replace(/"/g,`\\"`)}"`),x(`git push origin ${F} --force`),o.log(`Step 7: Creating/Updating Sync PR...`);let I=C?`docs: sync documentation for PR #${C}`:`docs: sync documentation audit`,L=`## 📄 Documentation Sync\n\n${P.summary}\n\n### Changes\n`+P.changes.map(e=>`- ${e.action===`create`?`✅ Created`:e.action===`update`?`🔄 Updated`:`🗑️ Deleted`}: \`${e.path}\` (${e.explanation})`).join(`
+`)+`
+
+---
+_Auto-generated by Doc Sync Workflow_`,R=await e.listPRs(f,v,`${f}:${F}`);if(R.length>0){let t=R[0];await e.updatePR(f,v,t.number,I,L),o.log(`Updated existing PR #${t.number}`)}else{let t=await e.createPR(f,v,I,F,A,L);o.log(`Created new PR #${t.number}`)}return o.log(`Doc Sync Workflow completed successfully.`),{synced:!0,changes:P.changes}}catch(e){let t=e instanceof Error?e.message:String(e);throw o.error(`Workflow failed at step: ${t}`),e}}async function w(){let e={GITHUB_TOKEN:process.env.GITHUB_TOKEN,LLM:process.env.LLM,MODEL:process.env.MODEL,API_KEY:process.env.API_KEY,GITHUB_REPOSITORY_OWNER:process.env.GITHUB_REPOSITORY_OWNER,GITHUB_REPOSITORY_NAME:process.env.GITHUB_REPOSITORY_NAME},t=Object.entries(e).filter(([e,t])=>!t).map(([e])=>e);t.length>0&&(console.error(`Missing required environment variables:`),console.error(t.join(`, `)),process.exit(1));let n={githubToken:process.env.GITHUB_TOKEN||``,llm:process.env.LLM||``,model:process.env.MODEL||``,apiKey:process.env.API_KEY||``,owner:process.env.GITHUB_REPOSITORY_OWNER||``,repo:process.env.GITHUB_REPOSITORY_NAME||``,pullNumber:process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER?parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER,10):void 0,lookbackCommits:process.env.LOOKBACK_COMMITS?parseInt(process.env.LOOKBACK_COMMITS,10):10,docPattern:process.env.DOC_PATTERN||`.*\\.md`,debug:process.env.DEBUG===`true`};try{await C(n),process.exit(0)}catch(e){console.error(`Workflow failed:`,e),process.exit(1)}}process.env.NODE_ENV!==`test`&&w();export{C as runDocSyncWorkflow};

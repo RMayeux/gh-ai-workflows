@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { LLMProvider, GenerateRequest, GenerateResponse } from './types/llm';
+import { LLMProvider, GenerateRequest, GenerateResponse } from '../platform/llm/types';
 import { Logger } from './telemetry';
 import { LLMError } from './errors/llm-errors';
 
@@ -94,15 +94,17 @@ export async function generateStructured<T>(
     };
 
     try {
-      // Implementation of a simple timeout
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('LLM request timed out after 300 seconds')), 300000)
-      );
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error('LLM request timed out after 300 seconds')), 300000);
+      });
 
       const response = await Promise.race([
         provider.generate(currentRequest),
         timeoutPromise
       ]) as GenerateResponse;
+      
+      clearTimeout(timeoutId!);
 
       lastRawResponse = response.text;
       const cleaned = cleanJson(lastRawResponse);

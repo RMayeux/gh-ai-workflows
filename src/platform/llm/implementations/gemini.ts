@@ -1,6 +1,6 @@
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '@core';
-import { ProviderError, RateLimitError, AuthenticationError, InvalidRequestError } from '@core';
-import { Logger } from '@core';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../types';
+import { ProviderError, RateLimitError, AuthenticationError, InvalidRequestError } from '../../../core/errors/llm-errors';
+import { Logger } from '../../../core/telemetry';
 
 interface GeminiRequest {
   contents: Array<{

@@ -9,12 +9,10 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@core": ["src/core/index.ts"],
       "@core/*": ["src/core/*"],
       "@platform/*": ["src/platform/*"],
-      "@features/*": ["src/features/*"]
+      "@features/*": ["features/*"]
     },
-    "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "scripts/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }

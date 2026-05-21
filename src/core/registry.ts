@@ -1,4 +1,4 @@
-import { LLMProvider, ProviderConfig } from './types/llm';
+import { LLMProvider, ProviderConfig } from '../platform/llm/types';
 
 export type ProviderConstructor = new (config: ProviderConfig) => LLMProvider;
 

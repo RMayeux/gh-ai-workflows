@@ -22,7 +22,7 @@ jobs:
         with:                                                                                                                                                                       
           fetch-depth: 0
       - name: Run Doc Sync
-        uses: ./workflows/doc-sync
+        uses: ./features/doc-sync
         with:
           llm: 'gemini'
           model: 'gemma-4-31b-it'

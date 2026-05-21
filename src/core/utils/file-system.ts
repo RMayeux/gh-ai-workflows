@@ -1,6 +1,6 @@
 import { readFileSync, existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { Logger } from '@core';
+import { Logger } from '@core/telemetry';
 
 /**
  * Recursively finds all files in a directory, skipping common ignore-dirs.

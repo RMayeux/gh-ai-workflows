@@ -1,10 +1,6 @@
 import { GitHubClient } from './index';
-import { Logger } from '../../core';
+import { Logger } from '../../core/telemetry';
 
-/**
- * Removes all previous bot comments matching a specific identifier
- * and prepares the PR for a new comment.
- */
 export async function replaceBotComments(
   gh: GitHubClient,
   owner: string,
