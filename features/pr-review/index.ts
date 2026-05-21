@@ -5,7 +5,7 @@ import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
 import { PRReviewSchema } from './schema';
-import { replaceBotComments, syncLabels } from '@platform/github';
+import { upsertBotComment, syncLabels } from '@platform/github';
 import { formatAIList } from '@core/utils/markdown';
 import { PR_REVIEW_PROMPT } from './prompt';
 import path from 'node:path';
@@ -53,11 +53,18 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     // 3. Load and Render Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
     
+    const comments = await gh.listComments(owner, repo, pullNumber);
+    const botComment = comments
+      .filter(c => c.body?.includes('### 🤖 AI Code Review'))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
+    const previousCommentBody = botComment?.body || '';
+
     const prompt = PromptEngine.render(PR_REVIEW_PROMPT, {
       pr_title: context.details.title,
       pr_body: context.details.body ?? '',
       changed_files: context.files.join(', '),
       code_diff: context.diff,
+      previous_comment: previousCommentBody,
     });
 
     // 4. Generate Structured Review
@@ -86,16 +93,35 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     // 5. Post Review Comment
     Logger.log('Step 5: Posting review comment to GitHub...');
     
-    await replaceBotComments(gh, owner, repo, pullNumber, '### 🤖 AI Code Review');
+    const date = new Date().toISOString().replace('T', ' ').replace(/\..+Z$/, ' UTC');
+    let body = `### 🤖 AI Code Review — updated ${date}\n\n`;
+    body += `**Summary:** ${review.summary}\n\n`;
 
-    const summary = `### 🤖 AI Code Review\n\n**Summary:** ${review.summary}\n\n`;
-    const issuesContent = formatAIList('Issues', review.issues.map(i => `[${i.severity}] ${i.description}`));
-    
-    const finalBody = review.issues.length > 0 
-      ? summary + issuesContent 
-      : summary + `✅ No issues found!`;
+    const newIssues = review.issues.filter(i => i.status === 'new');
+    const persistingIssues = review.issues.filter(i => i.status === 'persisting');
 
-    await gh.postComment(owner, repo, pullNumber, finalBody).catch(err => {
+    if (newIssues.length > 0) {
+      body += `**New issues**\n`;
+      body += newIssues.map(i => `- [ ] [${i.severity}] ${i.description}`).join('\n') + '\n\n';
+    }
+
+    if (persistingIssues.length > 0) {
+      body += `**Persisting issues**\n`;
+      body += persistingIssues.map(i => `- [ ] [${i.severity}] ${i.description}`).join('\n') + '\n\n';
+    }
+
+    if (review.resolvedIssues.length > 0) {
+      body += `**Resolved issues**\n`;
+      body += review.resolvedIssues.map(i => `- [x] ${i.description}`).join('\n') + '\n\n';
+    }
+
+    if (review.issues.length === 0 && review.resolvedIssues.length === 0) {
+      body += `✅ No issues found!`;
+    } else if (review.issues.length === 0) {
+      body += `✅ All previous issues have been resolved!`;
+    }
+
+    await upsertBotComment(gh, owner, repo, pullNumber, '### 🤖 AI Code Review', body).catch(err => {
       throw new Error(`Failed to post comment: ${err.message}`);
     });
 

@@ -6,7 +6,9 @@ export const QATestCasesSchema = z.object({
     featureSlug: z.string().describe('The domain/feature-slug'),
     testCases: z.array(z.string()).describe('List of test cases in "condition → action → expected result" format')
   })),
-  totalTests: z.number().describe('Total number of test cases across all features')
+  unchangedTestCases: z.array(z.string()).describe('Test cases from the previous comment that are still valid'),
+  retiredTestCases: z.array(z.string()).describe('Test cases from the previous comment that are no longer relevant'),
+  totalTests: z.number().describe('Total number of active test cases (impacted + unchanged)')
 });
 
 export type QATestCases = z.infer<typeof QATestCasesSchema>;

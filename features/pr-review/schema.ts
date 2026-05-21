@@ -5,6 +5,10 @@ export const PRReviewSchema = z.object({
     .min(1, 'Summary is required'),
   issues: z.array(z.object({
     severity: z.enum(['error', 'warning', 'info']),
+    status: z.enum(['new', 'persisting']),
+    description: z.string(),
+  })).default([]),
+  resolvedIssues: z.array(z.object({
     description: z.string(),
   })).default([]),
   approved: z.boolean().default(false),

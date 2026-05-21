@@ -6,15 +6,23 @@ const VALID_REVIEW = {
   issues: [
     {
       severity: 'error',
+      status: 'new',
       description: 'The cache key does not include the user ID, leading to session leakage between users.'
     },
     {
       severity: 'warning',
+      status: 'persisting',
       description: 'The cache TTL is set to 24 hours, which might be too long for session data.'
     },
     {
       severity: 'info',
+      status: 'new',
       description: 'Consider using a more descriptive name for the CacheManager class.'
+    }
+  ],
+  resolvedIssues: [
+    {
+      description: 'Old issue that was fixed'
     }
   ],
   approved: false,
@@ -41,6 +49,7 @@ describe('PRReviewSchema', () => {
       expect(result.data).toEqual({
         ...VALID_MINIMAL_REVIEW,
         issues: [],
+        resolvedIssues: [],
       });
     }
   });
