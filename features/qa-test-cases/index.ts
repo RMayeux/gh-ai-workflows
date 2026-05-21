@@ -6,7 +6,7 @@ import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
-import { QATestCasesSchema, QATestCasesInputs } from './schema';
+import { QATestCasesSchema, QATestCasesInputs, QATestCasesInputsSchema } from './schema';
 import { upsertBotComment } from '@platform/github/comments';
 import { formatAIList } from '@core/utils/markdown';
 import { collectDocs } from '@core/utils/file-system';
