@@ -10,6 +10,7 @@ import { QATestCasesSchema, QATestCasesInputs } from './schema';
 import { upsertBotComment } from '@platform/github/comments';
 import { formatAIList } from '@core/utils/markdown';
 import { collectDocs } from '@core/utils/file-system';
+import { formatTimestamp } from '@core/utils/date';
 import { QA_TEST_CASES } from './prompt';
 
 export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githubClient?: GitHubClient }) {
@@ -62,11 +63,14 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
     const previousCommentBody = botComment?.body || '';
 
+    const date = formatTimestamp();
+
     const prompt = PromptEngine.render(QA_TEST_CASES, {
       project_context: projectContext || 'No project context provided.',
       code_diff: context.diff,
       documentation: projectDocs || 'No documentation provided for these changes.',
       previous_comment: previousCommentBody,
+      date,
     });
 
     // 5. Generate Structured Output
@@ -94,7 +98,6 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     // 6. GitHub Integration
     Logger.log('Step 6: Updating GitHub PR...');
 
-    const date = new Date().toISOString().replace('T', ' ').replace(/\..+Z$/, ' UTC');
     let body = `### 🧪 QA Test Cases — updated ${date}\n\n`;
     body += `> ${result.summary}\n\n`;
 

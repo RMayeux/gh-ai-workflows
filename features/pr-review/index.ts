@@ -7,6 +7,7 @@ import { registerAllProviders } from '@platform/llm';
 import { PRReviewSchema } from './schema';
 import { upsertBotComment, syncLabels } from '@platform/github';
 import { formatAIList } from '@core/utils/markdown';
+import { formatTimestamp } from '@core/utils/date';
 import { PR_REVIEW_PROMPT } from './prompt';
 import path from 'node:path';
 
@@ -93,7 +94,7 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     // 5. Post Review Comment
     Logger.log('Step 5: Posting review comment to GitHub...');
     
-    const date = new Date().toISOString().replace('T', ' ').replace(/\..+Z$/, ' UTC');
+    const date = formatTimestamp();
     let body = `### 🤖 AI Code Review — updated ${date}\n\n`;
     body += `**Summary:** ${review.summary}\n\n`;
 
