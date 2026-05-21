@@ -40,4 +40,4 @@ runs:
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"
         export DOC_PATTERN="${{ inputs.doc-pattern }}"
         export LOOKBACK_COMMITS="${{ inputs.lookback-commits }}"
-        node ${{ github.action_path }}/../../../dist/doc-sync/index.mjs
+        node ${{ github.action_path }}/../../dist/doc-sync/index.js

@@ -4,7 +4,7 @@
   "packageManager": "pnpm@11.1.2",
   "type": "module",
   "scripts": {
-    "bundle": "tsdown",
+    "bundle": "tsdown && find dist -name '*.mjs' -exec sh -c 'mv \"$1\" \"${1%.mjs}.js\"' _ {} \\;",
     "test": "vitest run",
     "lint": "eslint src/**/*.ts",
     "typecheck": "tsc --noEmit",

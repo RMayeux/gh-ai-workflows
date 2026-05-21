@@ -11,5 +11,7 @@ export default defineConfig({
   minify: true,
   clean: true,
   dts: false,
-  noExternal: [/.*/],  // inline everything — required for self-contained Actions
+  deps: {
+    alwaysBundle: [/.*/],
+  },
 })
