@@ -99,7 +99,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     Logger.log('Step 6: Updating GitHub PR...');
 
     let body = `### 🧪 QA Test Cases — updated ${date}\n\n`;
-    body += `> ${result.summary}\n\n`;
+    body += `> ${result.summary} (**Total active tests: ${result.totalTests}**)\n\n`;
 
     if (result.impactedFeatures.length > 0) {
       body += `**New / updated**\n`;
@@ -134,41 +134,28 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
 }
 
 async function main() {
-  const requiredEnvVars = {
-    GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    LLM: process.env.LLM,
-    MODEL: process.env.MODEL,
-    API_KEY: process.env.API_KEY,
-    GITHUB_REPOSITORY_OWNER: process.env.GITHUB_REPOSITORY_OWNER,
-    GITHUB_REPOSITORY_NAME: process.env.GITHUB_REPOSITORY_NAME,
-    GITHUB_EVENT_PULL_REQUEST_NUMBER: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER,
-  };
-
-  const missingVars = Object.entries(requiredEnvVars)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
-
-  if (missingVars.length > 0) {
-    console.error('Missing required environment variables:');
-    console.error(missingVars.join(', '));
-    process.exit(1);
-  }
-
-  const inputs: any = {
-    githubToken: process.env.GITHUB_TOKEN || '',
-    llm: process.env.LLM || '',
-    model: process.env.MODEL || '',
-    apiKey: process.env.API_KEY || '',
-    owner: process.env.GITHUB_REPOSITORY_OWNER || '',
-    repo: process.env.GITHUB_REPOSITORY_NAME || '',
-    pullNumber: parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER || '0', 10),
-    projectContext: process.env.PROJECT_CONTEXT || '',
-    docPattern: process.env.DOC_PATTERN || '',
+  const envInputs = {
+    githubToken: process.env.GITHUB_TOKEN,
+    llm: process.env.LLM,
+    model: process.env.MODEL,
+    apiKey: process.env.API_KEY,
+    owner: process.env.GITHUB_REPOSITORY_OWNER,
+    repo: process.env.GITHUB_REPOSITORY_NAME,
+    pullNumber: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER ? parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER, 10) : undefined,
+    projectContext: process.env.PROJECT_CONTEXT,
+    docPattern: process.env.DOC_PATTERN,
     debug: process.env.DEBUG === 'true',
   };
 
+  const validation = QATestCasesInputsSchema.safeParse(envInputs);
+  if (!validation.success) {
+    console.error('Invalid or missing environment variables:');
+    console.error(JSON.stringify(validation.error.format(), null, 2));
+    process.exit(1);
+  }
+
   try {
-    await runQATestCasesWorkflow(inputs);
+    await runQATestCasesWorkflow(validation.data);
     process.exit(0);
   } catch (error) {
     console.error('Workflow failed:', error);

@@ -5,7 +5,7 @@ export const QA_TEST_CASES: PromptDefinition = {
   system: `You are a senior QA lead reviewing a pull request before it goes to QA.
 Your goal is the most focused, actionable test list possible.
 Do not output any reasoning or analysis. Output ONLY a valid JSON object.
-IMPORTANT: The root of your response must be a JSON OBJECT { ... }, NOT a JSON ARRAY [ ... ].`,
+Do not rename keys. Do not add new keys. Do not nest differently than the example below.`,
   user: `---
 ## Context
 {{project_context}}
@@ -33,45 +33,36 @@ IMPORTANT: The root of your response must be a JSON OBJECT { ... }, NOT a JSON A
 - No jargon, no code, no technical details
 - Skip permission checks unless permissions explicitly changed in this PR
 
-## Strict Output Constraints
-- DO NOT return a list of test cases as a root array.
-- DO NOT use keys like "test_case", "expected_result", or "priority".
-- You MUST use the exact JSON structure defined in the "Output Format" section below.
-- If you fail to follow this structure, the system will crash.
-
 ## Rules when a previous comment exists
 - Parse the previous comment to extract existing test cases
 - A TC is "unchanged" if the behavior it covers has not changed in the new diff — copy it verbatim into unchangedTestCases
 - A TC is "retired" if the behavior it covers no longer exists or was replaced — copy its text into retiredTestCases
 - A TC is "new" or "updated" if it covers something new or changed — add it to impactedFeatures as usual
-- Never rewrite or paraphrase unchanged TCs — copy them character for character
+- Never rewrite or paraphrase unchanged or retired TCs — copy them character for character
+- If no previous comment exists, return empty arrays for unchangedTestCases and retiredTestCases
 
 ---
 ## Output Format
-You must return a JSON object with exactly these keys:
-- "summary": (string) A concise one-sentence summary of what changed and why it matters to QA.
-- "impactedFeatures": (array of objects) Each object must have:
-    - "featureSlug": (string) The domain/feature-slug (e.g., "auth/login").
-    - "testCases": (array of strings) Each string is a new or updated TC in the "condition → action → expected result" format.
-- "unchangedTestCases": (array of strings) TCs from the previous comment that are still fully valid, copied verbatim.
-- "retiredTestCases": (array of strings) TCs from the previous comment that are no longer relevant, copied verbatim.
-- "totalTests": (number) Total number of active test cases (impactedFeatures + unchanged, excluding retired).
+You must return a JSON object that matches EXACTLY this structure — no extra keys, no renamed keys:
 
----
-## Comment rendering (the agent will format this, not you)
-The output will be rendered as:
-
-### QA Test Cases — updated {{date}}
-> summary
-
-**New / updated**
-- TC 1
-- TC 2
-
-**Already covered**
-- TC 3 (unchanged, verbatim)
-
-~~- TC 4~~ (retired)
+{
+  "summary": "The scoring step now returns a confidence level alongside the score.",
+  "impactedFeatures": [
+    {
+      "featureSlug": "scoring/confidence",
+      "testCases": [
+        "Session has completed steps → AI scores step → Score AND confidence level (1–5) both appear"
+      ]
+    }
+  ],
+  "unchangedTestCases": [
+    "Form has required field empty → User submits → Field is highlighted and submission is blocked"
+  ],
+  "retiredTestCases": [
+    "User submits form with score only → Score appears without confidence"
+  ],
+  "totalTests": 2
+}
 
 ---
 ### Good TC examples:

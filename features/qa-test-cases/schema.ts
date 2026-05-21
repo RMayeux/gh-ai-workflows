@@ -1,14 +1,33 @@
 import { z } from 'zod';
 
 export const QATestCasesSchema = z.object({
-  summary: z.string().describe('One sentence describing what changed and why it matters to QA'),
-  impactedFeatures: z.array(z.object({
-    featureSlug: z.string().describe('The domain/feature-slug'),
-    testCases: z.array(z.string()).describe('List of test cases in "condition → action → expected result" format')
-  })),
-  unchangedTestCases: z.array(z.string()).describe('Test cases from the previous comment that are still valid'),
-  retiredTestCases: z.array(z.string()).describe('Test cases from the previous comment that are no longer relevant'),
-  totalTests: z.number().describe('Total number of active test cases (impacted + unchanged)')
+  summary: z
+    .string()
+    .describe('One sentence describing what changed and why it matters to QA'),
+  impactedFeatures: z
+    .array(
+      z.object({
+        featureSlug: z.string().describe('The domain/feature-slug'),
+        testCases: z
+          .array(z.string())
+          .describe('List of test cases in "condition → action → expected result" format'),
+      })
+    )
+    .optional()
+    .default([]),
+  unchangedTestCases: z
+    .array(z.string())
+    .optional()
+    .default([])
+    .describe('Test cases from the previous comment that are still valid, copied verbatim'),
+  retiredTestCases: z
+    .array(z.string())
+    .optional()
+    .default([])
+    .describe('Test cases from the previous comment that are no longer relevant, copied verbatim'),
+  totalTests: z
+    .number()
+    .describe('Total number of active test cases (impacted + unchanged, excluding retired)'),
 });
 
 export type QATestCases = z.infer<typeof QATestCasesSchema>;
