@@ -1,4 +1,4 @@
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '@core';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../types';
 
 export class FallbackProvider implements LLMProvider {
   readonly providerId = 'fallback';

@@ -1,4 +1,4 @@
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability, ProviderConfig } from '@core';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability, ProviderConfig } from '../types';
 
 export class MockProvider implements LLMProvider {
   readonly providerId = 'mock';

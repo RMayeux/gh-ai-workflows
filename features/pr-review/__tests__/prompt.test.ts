@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PromptEngine } from '@core';
+import { PromptEngine } from '@core/prompt-engine';
 import { PR_REVIEW_PROMPT } from '../prompt';
 
 const MOCK_INPUTS = {

@@ -1,4 +1,4 @@
-import { ProviderRegistry } from '@core';
+import { ProviderRegistry } from '@core/registry';
 import { OpenAIProvider } from './implementations/openai';
 import { AnthropicProvider } from './implementations/anthropic';
 import { GeminiProvider } from './implementations/gemini';

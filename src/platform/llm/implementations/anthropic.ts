@@ -1,5 +1,5 @@
-import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '@core';
-import { ProviderError, RateLimitError, AuthenticationError, InvalidRequestError } from '@core';
+import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../types';
+import { ProviderError, RateLimitError, AuthenticationError, InvalidRequestError } from '../../../core/errors/llm-errors';
 
 export class AnthropicProvider implements LLMProvider {
   readonly providerId = 'anthropic';

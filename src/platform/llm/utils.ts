@@ -1,11 +1,11 @@
-import { LLMProvider, GenerateRequest, GenerateResponse, RetryableError } from '@core';
+import { LLMProvider, GenerateRequest, GenerateResponse, RetryableError } from './types';
 
 export async function withRetry<T>(
   fn: () => Promise<T>,
   options: { maxRetries: number; initialDelay: number } = { maxRetries: 3, initialDelay: 1000 }
 ): Promise<T> {
   let lastError: unknown;
-  for (let attempt = 0; attempt < options.maxRetries; attempt++) {
+  for (let attempt = 0; attempt <= options.maxRetries; attempt++) {
     try {
       return await fn();
     } catch (e: unknown) {
@@ -14,6 +14,10 @@ export async function withRetry<T>(
         throw e;
       }
       
+      if (attempt === options.maxRetries) {
+        throw lastError;
+      }
+
       const delay = options.initialDelay * Math.pow(2, attempt);
       await new Promise(resolve => setTimeout(resolve, delay));
     }

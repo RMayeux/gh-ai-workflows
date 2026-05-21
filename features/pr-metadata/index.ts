@@ -1,5 +1,8 @@
 import { GitHubClient, ContextBuilder } from '@platform/github';
-import { generateStructured, ProviderRegistry, PromptEngine, Logger } from '@core';
+import { generateStructured } from '@core/structured-generation';
+import { ProviderRegistry } from '@core/registry';
+import { PromptEngine } from '@core/prompt-engine';
+import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
 import { PRMetadataSchema } from './schema';
 import { syncLabels } from '@platform/github/labels';

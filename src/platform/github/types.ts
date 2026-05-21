@@ -18,6 +18,8 @@ export interface GitHubPR {
   head: { ref: string };
   created_at: string;
   updated_at: string;
+  additions?: number;
+  deletions?: number;
 }
 
 export interface GitHubComment {

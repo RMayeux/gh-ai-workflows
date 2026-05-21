@@ -9,7 +9,6 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@core": ["src/core/index.ts"],
       "@core/*": ["src/core/*"],
       "@platform/*": ["src/platform/*"],
       "@features/*": ["features/*"]

@@ -1,56 +1,84 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { replaceBotComments } from '../comments';
 import { GitHubClient } from '../index';
+import { Logger } from '@core/telemetry';
 
-describe('GitHubClient Comments', () => {
-  const token = 'test-token';
-  const client = new GitHubClient(token);
+vi.mock('../index', () => {
+  return {
+    GitHubClient: vi.fn().mockImplementation(() => ({
+      listComments: vi.fn(),
+      deleteComment: vi.fn(),
+    })),
+  };
+});
+
+vi.mock('@core/telemetry', () => ({
+  Logger: {
+    log: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
+describe('replaceBotComments', () => {
+  let ghClient: any;
 
   beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn());
+    vi.clearAllMocks();
+    ghClient = new GitHubClient('token');
   });
 
-  const mockFetchResponse = (data: unknown, ok = true, status = 200, isText = false) => {
-    return Promise.resolve({
-      ok,
-      status,
-      text: () => Promise.resolve(isText ? String(data) : JSON.stringify(data)),
-      json: () => Promise.resolve(data),
-    } as Response);
-  };
+  it('should remove comments that contain the identifier', async () => {
+    const mockComments = [
+      { id: 1, body: 'Some user comment' },
+      { id: 2, body: '🤖 AI Review: Fixed' },
+      { id: 3, body: '🤖 AI Review: Another one' },
+      { id: 4, body: 'Another user comment' },
+    ];
+    
+    ghClient.listComments.mockResolvedValue(mockComments);
+    ghClient.deleteComment.mockResolvedValue({});
 
-  describe('postComment', () => {
-    it('should post a comment using POST', async () => {
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse({}));
-      
-      await client.postComment('owner', 'repo', 1, 'AI Review');
-      
-      const options = vi.mocked(fetch).mock.calls[0][1];
-      expect(options?.method).toBe('POST');
-      expect(JSON.parse(options?.body as string)).toEqual({
-        body: 'AI Review',
-      });
-    });
+    await replaceBotComments(ghClient, 'owner', 'repo', 1, '🤖 AI Review');
+
+    expect(ghClient.listComments).toHaveBeenCalledWith('owner', 'repo', 1);
+    expect(ghClient.deleteComment).toHaveBeenCalledTimes(2);
+    expect(ghClient.deleteComment).toHaveBeenCalledWith('owner', 'repo', 2);
+    expect(ghClient.deleteComment).toHaveBeenCalledWith('owner', 'repo', 3);
+    expect(Logger.log).toHaveBeenCalledWith(expect.stringContaining('Removed 2 previous 🤖 AI Review comments'));
   });
 
-  describe('listComments', () => {
-    it('should return a list of comments', async () => {
-      const mockComments = [{ id: 1, body: 'comment 1' }, { id: 2, body: 'comment 2' }];
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse(mockComments));
-      
-      const result = await client.listComments('owner', 'repo', 1);
-      
-      expect(result).toEqual(mockComments);
-    });
+  it('should do nothing if no bot comments are found', async () => {
+    const mockComments = [
+      { id: 1, body: 'Some user comment' },
+    ];
+    
+    ghClient.listComments.mockResolvedValue(mockComments);
+
+    await replaceBotComments(ghClient, 'owner', 'repo', 1, '🤖 AI Review');
+
+    expect(ghClient.deleteComment).not.toHaveBeenCalled();
+    expect(Logger.log).not.toHaveBeenCalled();
   });
 
-  describe('deleteComment', () => {
-    it('should use DELETE method', async () => {
-      vi.mocked(fetch).mockReturnValue(mockFetchResponse({}));
-      
-      await client.deleteComment('owner', 'repo', 1, 123);
-      
-      const options = vi.mocked(fetch).mock.calls[0][1];
-      expect(options?.method).toBe('DELETE');
-    });
+  it('should log an error but not throw if listComments fails', async () => {
+    ghClient.listComments.mockRejectedValue(new Error('GitHub API Failure'));
+
+    await expect(replaceBotComments(ghClient, 'owner', 'repo', 1, '🤖 AI Review'))
+      .resolves.not.toThrow();
+    
+    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to clean up old comments: GitHub API Failure'));
+  });
+
+  it('should log an error but not throw if deleteComment fails', async () => {
+    const mockComments = [
+      { id: 2, body: '🤖 AI Review: Fixed' },
+    ];
+    ghClient.listComments.mockResolvedValue(mockComments);
+    ghClient.deleteComment.mockRejectedValue(new Error('Delete Failed'));
+
+    await expect(replaceBotComments(ghClient, 'owner', 'repo', 1, '🤖 AI Review'))
+      .resolves.not.toThrow();
+    
+    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Failed to clean up old comments: Delete Failed'));
   });
 });

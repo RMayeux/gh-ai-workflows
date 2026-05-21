@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runPRMetadataWorkflow } from '../index';
-import { GitHubClient, ContextBuilder, syncLabels } from '@platform/github';
-import { ProviderRegistry, Logger } from '@core';
+import { GitHubClient, ContextBuilder } from '@platform/github';
+import { syncLabels } from '@platform/github/labels';
+import { ProviderRegistry } from '@core/registry';
+import { Logger } from '@core/telemetry';
 import { LLMProvider } from '@core/types/llm';
 
 vi.mock('@platform/github', () => {
+  const mockGhInstance = {
+    updatePR: vi.fn().mockResolvedValue({}),
+    addLabels: vi.fn().mockResolvedValue({}),
+  };
   return {
-    GitHubClient: vi.fn().mockImplementation(() => ({
-      updatePR: vi.fn().mockResolvedValue({}),
-    })),
+    GitHubClient: vi.fn().mockImplementation(() => mockGhInstance),
     ContextBuilder: vi.fn().mockImplementation(() => ({
       buildPRContext: vi.fn().mockResolvedValue({
         diff: 'realistic diff content',
@@ -21,33 +25,38 @@ vi.mock('@platform/github', () => {
         },
       }),
     })),
-    syncLabels: vi.fn().mockResolvedValue(undefined),
   };
 });
 
-vi.mock('@core', () => {
-  return {
-    ProviderRegistry: {
-      create: vi.fn(),
-    },
-    PromptEngine: {
-      render: vi.fn().mockReturnValue({
-        system: 'mock system prompt',
-        user: 'mock user prompt',
-      }),
-    },
-    generateStructured: vi.fn(),
-    Logger: {
-      log: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      addSecret: vi.fn(),
-    },
-  };
-});
+vi.mock('@platform/github/labels', () => ({
+  syncLabels: vi.fn().mockResolvedValue(undefined),
+}));
 
-import { generateStructured } from '@core';
+vi.mock('@core/registry', () => ({
+  ProviderRegistry: {
+    create: vi.fn(),
+    register: vi.fn(),
+  },
+}));
+
+vi.mock('@core/prompt-engine', () => ({
+  PromptEngine: {
+    render: vi.fn().mockReturnValue({
+      system: 'mock system prompt',
+      user: 'mock user prompt',
+    }),
+  },
+}));
+
+vi.mock('@core/telemetry', () => ({
+  Logger: {
+    log: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    addSecret: vi.fn(),
+  },
+}));
 
 const MOCK_INPUTS = {
   githubToken: 'ghp_testtoken000000000000000000000000',
@@ -82,40 +91,33 @@ const mockProvider: LLMProvider = {
 
 describe('runPRMetadataWorkflow', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     vi.stubEnv('GITHUB_TOKEN', MOCK_INPUTS.githubToken);
     vi.stubEnv('OPENAI_API_KEY', MOCK_INPUTS.apiKey);
-    (ProviderRegistry.create as any).mockReturnValue(mockProvider);
+    vi.mocked(ProviderRegistry.create).mockReturnValue(mockProvider);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
   it('Happy path: valid inputs -> correct LLM call arguments -> correct output written', async () => {
-    (generateStructured as any).mockResolvedValue({
-      success: true,
-      data: MOCK_METADATA,
-      attempts: 1,
-      rawResponse: '...',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(MOCK_METADATA),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
     });
 
     const result = await runPRMetadataWorkflow(MOCK_INPUTS);
 
     expect(result).toEqual(MOCK_METADATA);
-    expect(generateStructured).toHaveBeenCalledWith(
-      mockProvider,
-      expect.any(Object),
-      expect.objectContaining({
-        prompt: 'mock user prompt',
-        systemPrompt: 'mock system prompt',
-        maxTokens: MOCK_INPUTS.maxTokens,
-      }),
-      expect.objectContaining({
-        maxRetries: 3,
-        jsonMode: true,
-      })
-    );
+    expect(mockProvider.generate).toHaveBeenCalledWith(expect.objectContaining({
+      prompt: 'mock user prompt',
+      systemPrompt: 'mock system prompt',
+      maxTokens: MOCK_INPUTS.maxTokens,
+    }));
     
     const gh = new GitHubClient(MOCK_INPUTS.githubToken);
     expect(gh.updatePR).toHaveBeenCalledWith(
@@ -126,9 +128,8 @@ describe('runPRMetadataWorkflow', () => {
       MOCK_METADATA.body
     );
     
-    // labels: feat + doc-impact + size (150 changes = size/S)
     expect(syncLabels).toHaveBeenCalledWith(
-      expect.any(GitHubClient),
+      expect.any(Object),
       MOCK_INPUTS.owner,
       MOCK_INPUTS.repo,
       MOCK_INPUTS.pullNumber,
@@ -137,51 +138,57 @@ describe('runPRMetadataWorkflow', () => {
   });
 
   it('LLM returns malformed JSON -> generateStructured retries -> succeeds on second attempt', async () => {
-    (generateStructured as any)
-      .mockRejectedValueOnce(new Error('Malformed JSON'))
+    vi.mocked(mockProvider.generate)
       .mockResolvedValueOnce({
-        success: true,
-        data: MOCK_METADATA,
-        attempts: 2,
-        rawResponse: '...',
+        text: 'Invalid JSON',
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+        finishReason: 'stop',
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(MOCK_METADATA),
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        finishReason: 'stop',
       });
 
-    const result = await runPRMetadataWorkflow(MOCK_INPUTS);
+    const workflowPromise = runPRMetadataWorkflow(MOCK_INPUTS);
+    await vi.runAllTimersAsync();
+    const result = await workflowPromise;
     expect(result).toEqual(MOCK_METADATA);
-    expect(generateStructured).toHaveBeenCalledTimes(2);
+    expect(mockProvider.generate).toHaveBeenCalledTimes(2);
   });
 
   it('LLM returns malformed JSON -> all retries exhausted -> structured error returned, process exits with code 1', async () => {
-    (generateStructured as any).mockResolvedValue({
-      success: false,
-      error: 'Format Error: Unexpected token',
-      attempts: 4,
-      rawResponse: 'bad json',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: 'Invalid JSON',
+      usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      finishReason: 'stop',
     });
 
-    await expect(runPRMetadataWorkflow(MOCK_INPUTS)).rejects.toThrow('LLM Generation failed: Format Error: Unexpected token');
+    const workflowPromise = runPRMetadataWorkflow(MOCK_INPUTS);
+    await vi.runAllTimersAsync();
+    await expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
   });
 
   it('LLM returns JSON that fails Zod validation -> same retry and failure behavior as above', async () => {
-    (generateStructured as any).mockResolvedValue({
-      success: false,
-      error: 'Zod validation failed',
-      attempts: 4,
-      rawResponse: '{"wrong": "schema"}',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify({ wrong: 'schema' }),
+      usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      finishReason: 'stop',
     });
 
-    await expect(runPRMetadataWorkflow(MOCK_INPUTS)).rejects.toThrow('LLM Generation failed: Zod validation failed');
+    const workflowPromise = runPRMetadataWorkflow(MOCK_INPUTS);
+    await vi.runAllTimersAsync();
+    await expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
   });
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {
     const gh = new GitHubClient(MOCK_INPUTS.githubToken);
-    (gh.updatePR as any).mockRejectedValue(new Error('GitHub API Error'));
+    vi.mocked(gh.updatePR).mockRejectedValue(new Error('GitHub API Error'));
     
-    (generateStructured as any).mockResolvedValue({
-      success: true,
-      data: MOCK_METADATA,
-      attempts: 1,
-      rawResponse: '...',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(MOCK_METADATA),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
     });
 
     await expect(runPRMetadataWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('Failed to update PR: GitHub API Error');

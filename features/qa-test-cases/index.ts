@@ -1,7 +1,10 @@
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { GitHubClient, ContextBuilder } from '@platform/github';
-import { generateStructured, ProviderRegistry, PromptEngine, Logger } from '@core';
+import { generateStructured } from '@core/structured-generation';
+import { ProviderRegistry } from '@core/registry';
+import { PromptEngine } from '@core/prompt-engine';
+import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
 import { QATestCasesSchema, QATestCasesInputs } from './schema';
 import { replaceBotComments } from '@platform/github/comments';

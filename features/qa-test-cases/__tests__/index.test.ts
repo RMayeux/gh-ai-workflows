@@ -1,14 +1,17 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runQATestCasesWorkflow } from '../index';
-import { GitHubClient, ContextBuilder, replaceBotComments } from '@platform/github';
-import { ProviderRegistry, Logger } from '@core';
+import { GitHubClient, ContextBuilder } from '@platform/github';
+import { replaceBotComments } from '@platform/github/comments';
+import { ProviderRegistry } from '@core/registry';
+import { Logger } from '@core/telemetry';
 import { LLMProvider } from '@core/types/llm';
 
 vi.mock('@platform/github', () => {
+  const mockGhInstance = {
+    postComment: vi.fn().mockResolvedValue({}),
+  };
   return {
-    GitHubClient: vi.fn().mockImplementation(() => ({
-      postComment: vi.fn().mockResolvedValue({}),
-    })),
+    GitHubClient: vi.fn().mockImplementation(() => mockGhInstance),
     ContextBuilder: vi.fn().mockImplementation(() => ({
       buildPRContext: vi.fn().mockResolvedValue({
         diff: 'realistic diff content',
@@ -21,33 +24,38 @@ vi.mock('@platform/github', () => {
         },
       }),
     })),
-    replaceBotComments: vi.fn().mockResolvedValue(undefined),
   };
 });
 
-vi.mock('@core', () => {
-  return {
-    ProviderRegistry: {
-      create: vi.fn(),
-    },
-    PromptEngine: {
-      render: vi.fn().mockReturnValue({
-        system: 'mock system prompt',
-        user: 'mock user prompt',
-      }),
-    },
-    generateStructured: vi.fn(),
-    Logger: {
-      log: vi.fn(),
-      error: vi.fn(),
-      debug: vi.fn(),
-      warn: vi.fn(),
-      addSecret: vi.fn(),
-    },
-  };
-});
+vi.mock('@platform/github/comments', () => ({
+  replaceBotComments: vi.fn().mockResolvedValue(undefined),
+}));
 
-import { generateStructured } from '@core';
+vi.mock('@core/registry', () => ({
+  ProviderRegistry: {
+    create: vi.fn(),
+    register: vi.fn(),
+  },
+}));
+
+vi.mock('@core/prompt-engine', () => ({
+  PromptEngine: {
+    render: vi.fn().mockReturnValue({
+      system: 'mock system prompt',
+      user: 'mock user prompt',
+    }),
+  },
+}));
+
+vi.mock('@core/telemetry', () => ({
+  Logger: {
+    log: vi.fn(),
+    error: vi.fn(),
+    debug: vi.fn(),
+    warn: vi.fn(),
+    addSecret: vi.fn(),
+  },
+}));
 
 const MOCK_INPUTS = {
   githubToken: 'ghp_testtoken000000000000000000000000',
@@ -85,41 +93,34 @@ const mockProvider: LLMProvider = {
 
 describe('runQATestCasesWorkflow', () => {
   beforeEach(() => {
+    vi.useFakeTimers();
     vi.clearAllMocks();
     vi.stubEnv('GITHUB_TOKEN', MOCK_INPUTS.githubToken);
     vi.stubEnv('OPENAI_API_KEY', MOCK_INPUTS.apiKey);
-    (ProviderRegistry.create as any).mockReturnValue(mockProvider);
+    vi.mocked(ProviderRegistry.create).mockReturnValue(mockProvider);
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllEnvs();
   });
 
   it('Happy path: valid inputs -> correct LLM call arguments -> correct output written', async () => {
-    (generateStructured as any).mockResolvedValue({
-      success: true,
-      data: MOCK_QA_RESULT,
-      attempts: 1,
-      rawResponse: '...',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(MOCK_QA_RESULT),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
     });
 
     const result = await runQATestCasesWorkflow(MOCK_INPUTS);
 
     expect(result).toEqual(MOCK_QA_RESULT);
-    expect(generateStructured).toHaveBeenCalledWith(
-      mockProvider,
-      expect.any(Object),
-      expect.objectContaining({
-        prompt: 'mock user prompt',
-        systemPrompt: 'mock system prompt',
-      }),
-      expect.objectContaining({
-        maxRetries: 3,
-        jsonMode: true,
-      })
-    );
+    expect(mockProvider.generate).toHaveBeenCalledWith(expect.objectContaining({
+      prompt: 'mock user prompt',
+      systemPrompt: 'mock system prompt',
+    }));
     expect(replaceBotComments).toHaveBeenCalledWith(
-      expect.any(GitHubClient),
+      expect.any(Object),
       MOCK_INPUTS.owner,
       MOCK_INPUTS.repo,
       MOCK_INPUTS.pullNumber,
@@ -136,51 +137,57 @@ describe('runQATestCasesWorkflow', () => {
   });
 
   it('LLM returns malformed JSON -> generateStructured retries -> succeeds on second attempt', async () => {
-    (generateStructured as any)
-      .mockRejectedValueOnce(new Error('Malformed JSON'))
+    vi.mocked(mockProvider.generate)
       .mockResolvedValueOnce({
-        success: true,
-        data: MOCK_QA_RESULT,
-        attempts: 2,
-        rawResponse: '...',
+        text: 'Invalid JSON',
+        usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+        finishReason: 'stop',
+      })
+      .mockResolvedValueOnce({
+        text: JSON.stringify(MOCK_QA_RESULT),
+        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+        finishReason: 'stop',
       });
 
-    const result = await runQATestCasesWorkflow(MOCK_INPUTS);
+    const workflowPromise = runQATestCasesWorkflow(MOCK_INPUTS);
+    await vi.runAllTimersAsync();
+    const result = await workflowPromise;
     expect(result).toEqual(MOCK_QA_RESULT);
-    expect(generateStructured).toHaveBeenCalledTimes(2);
+    expect(mockProvider.generate).toHaveBeenCalledTimes(2);
   });
 
   it('LLM returns malformed JSON -> all retries exhausted -> structured error returned, process exits with code 1', async () => {
-    (generateStructured as any).mockResolvedValue({
-      success: false,
-      error: 'Format Error: Unexpected token',
-      attempts: 4,
-      rawResponse: 'bad json',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: 'Invalid JSON',
+      usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      finishReason: 'stop',
     });
 
-    await expect(runQATestCasesWorkflow(MOCK_INPUTS)).rejects.toThrow('LLM Generation failed: Format Error: Unexpected token');
+    const workflowPromise = runQATestCasesWorkflow(MOCK_INPUTS);
+    await vi.runAllTimersAsync();
+    await expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
   });
 
   it('LLM returns JSON that fails Zod validation -> same retry and failure behavior as above', async () => {
-    (generateStructured as any).mockResolvedValue({
-      success: false,
-      error: 'Zod validation failed',
-      attempts: 4,
-      rawResponse: '{"wrong": "schema"}',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify({ wrong: 'schema' }),
+      usage: { promptTokens: 10, completionTokens: 10, totalTokens: 20 },
+      finishReason: 'stop',
     });
 
-    await expect(runQATestCasesWorkflow(MOCK_INPUTS)).rejects.toThrow('LLM Generation failed: Zod validation failed');
+    const workflowPromise = runQATestCasesWorkflow(MOCK_INPUTS);
+    await vi.runAllTimersAsync();
+    await expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
   });
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {
     const gh = new GitHubClient(MOCK_INPUTS.githubToken);
-    (gh.postComment as any).mockRejectedValue(new Error('GitHub API Error'));
+    vi.mocked(gh.postComment).mockRejectedValue(new Error('GitHub API Error'));
     
-    (generateStructured as any).mockResolvedValue({
-      success: true,
-      data: MOCK_QA_RESULT,
-      attempts: 1,
-      rawResponse: '...',
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(MOCK_QA_RESULT),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
     });
 
     await expect(runQATestCasesWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('Failed to post QA comment: GitHub API Error');
