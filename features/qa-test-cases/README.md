@@ -1,6 +1,6 @@
 # AI QA Test Cases
 
-Generates QA test cases from PR changes.
+Generates QA test cases from PR changes, tracking new, unchanged, and retired tests across iterations.
 
 ## Inputs
 
