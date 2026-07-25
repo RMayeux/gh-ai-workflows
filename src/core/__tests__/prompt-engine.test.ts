@@ -26,6 +26,43 @@ describe('PromptEngine', () => {
       const variables = { name: 'Alice' };
       expect(PromptEngine.interpolate(template, variables)).toBe('Hello {name}!');
     });
+
+    it('should include content inside {{#var}} when var is truthy', () => {
+      const template = 'Before{{#flag}} INNER {{/flag}}After';
+      expect(PromptEngine.interpolate(template, { flag: true })).toBe('Before INNER After');
+    });
+
+    it('should omit content inside {{#var}} when var is falsy', () => {
+      const template = 'Before{{#flag}} INNER {{/flag}}After';
+      expect(PromptEngine.interpolate(template, { flag: false })).toBe('BeforeAfter');
+    });
+
+    it('should include content inside {{^var}} when var is falsy', () => {
+      const template = 'Before{{^flag}} FALLBACK {{/flag}}After';
+      expect(PromptEngine.interpolate(template, { flag: false })).toBe('Before FALLBACK After');
+    });
+
+    it('should omit content inside {{^var}} when var is truthy', () => {
+      const template = 'Before{{^flag}} FALLBACK {{/flag}}After';
+      expect(PromptEngine.interpolate(template, { flag: true })).toBe('BeforeAfter');
+    });
+
+    it('should handle multi-line conditional blocks', () => {
+      const template = 'a\n{{#show}}\nblock\n{{/show}}\nb';
+      expect(PromptEngine.interpolate(template, { show: true })).toBe('a\n\nblock\n\nb');
+      expect(PromptEngine.interpolate(template, { show: false })).toBe('a\n\nb');
+    });
+
+    it('should throw when conditional variable is missing', () => {
+      const template = '{{#missing}}content{{/missing}}';
+      expect(() => PromptEngine.interpolate(template, {}))
+        .toThrow('Missing required prompt variable: missing');
+    });
+
+    it('should support empty string as falsy in conditionals', () => {
+      const template = '{{#show}}VISIBLE{{/show}}|{{^show}}HIDDEN{{/show}}';
+      expect(PromptEngine.interpolate(template, { show: '' })).toBe('|HIDDEN');
+    });
   });
 
   describe('render', () => {

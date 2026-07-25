@@ -20,18 +20,42 @@ export interface PromptVariables {
 }
 
 export class PromptEngine {
+  private static isTruthy(val: string | number | boolean | undefined): boolean {
+    return val !== undefined && val !== false && val !== 0 && val !== '';
+  }
+
   /**
    * Interpolates variables into a template string.
-   * Replaces {{variable}} with the corresponding value from variables.
+   * Supports {{variable}}, {{#var}}...{{/var}} (truthy), {{^var}}...{{/var}} (falsy).
    */
   static interpolate(template: string, variables: PromptVariables): string {
-    return template.replace(/\{\{(\w+)\}\}/g, (match, key) => {
+    let result = template;
+
+    result = result.replace(/\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, key, content) => {
+      const value = variables[key];
+      if (value === undefined) {
+        throw new Error(`Missing required prompt variable: ${key}`);
+      }
+      return this.isTruthy(value) ? content : '';
+    });
+
+    result = result.replace(/\{\{\^(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, key, content) => {
+      const value = variables[key];
+      if (value === undefined) {
+        throw new Error(`Missing required prompt variable: ${key}`);
+      }
+      return this.isTruthy(value) ? '' : content;
+    });
+
+    result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
       const value = variables[key];
       if (value === undefined) {
         throw new Error(`Missing required prompt variable: ${key}`);
       }
       return String(value);
     });
+
+    return result;
   }
 
   /**
