@@ -1,4 +1,6 @@
-// No import here
+export interface Exiter {
+  exit: (code: number) => never;
+}
 
 export interface RunnerInputs {
   githubToken: string;
@@ -17,12 +19,16 @@ export interface RunnerInputs {
 
 type WorkflowFunction = (inputs: RunnerInputs) => Promise<unknown>;
 
+const defaultExiter: Exiter = { exit: (code) => process.exit(code) };
+
 export interface CreateRunnerOptions {
   requiredEnvVars?: string[];
   validate?: (inputs: RunnerInputs) => { success: boolean; error?: { message: string } };
+  exiter?: Exiter;
 }
 
 export function createRunner(workflowFn: WorkflowFunction, options: CreateRunnerOptions = {}) {
+  const exiter = options.exiter ?? defaultExiter;
   return {
     run: async () => {
       const baseRequired: Record<string, string | undefined> = {
@@ -49,7 +55,7 @@ export function createRunner(workflowFn: WorkflowFunction, options: CreateRunner
       if (missingVars.length > 0) {
         console.error('Missing required environment variables:');
         console.error(missingVars.join(', '));
-        process.exit(1);
+        exiter.exit(1);
       }
 
       const inputs: RunnerInputs = {
@@ -83,16 +89,16 @@ export function createRunner(workflowFn: WorkflowFunction, options: CreateRunner
         const validation = options.validate(inputs);
         if (!validation.success) {
           console.error('Input validation failed:', validation.error?.message);
-          process.exit(1);
+          exiter.exit(1);
         }
       }
 
       try {
         await workflowFn(inputs);
-        process.exit(0);
+        exiter.exit(0);
       } catch (error) {
         console.error('Workflow failed:', error);
-        process.exit(1);
+        exiter.exit(1);
       }
     }
   };

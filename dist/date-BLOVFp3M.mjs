@@ -1,1 +1,0 @@
-function e(e=new Date){return e.toLocaleString(`fr-FR`,{day:`numeric`,month:`long`,year:`numeric`,hour:`2-digit`,minute:`2-digit`,hour12:!1,timeZone:`UTC`})+` UTC`}export{e as t};

@@ -3,7 +3,7 @@ import { runDocSyncWorkflow } from '../index';
 import { GitHubClient, ContextBuilder } from '@platform/github';
 import { ProviderRegistry } from '@core/registry';
 import { Logger } from '@core/telemetry';
-import { LLMProvider } from '@core/types/llm';
+import type { LLMProvider } from '@platform/llm/types';
 import { execSync } from 'node:child_process';
 import { writeFileSync, existsSync, mkdirSync, readdirSync } from 'node:fs';
 

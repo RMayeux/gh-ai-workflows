@@ -1,4 +1,4 @@
-import { PromptDefinition } from '@core/types/prompt';
+import { PromptDefinition } from '@core/prompt-engine';
 
 export const DocSyncPrompt: PromptDefinition = {
   id: 'doc-sync',

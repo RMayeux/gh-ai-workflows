@@ -1,4 +1,4 @@
-import { PromptDefinition } from '@core/types/prompt';
+import { PromptDefinition } from '@core/prompt-engine';
 
 export const QA_TEST_CASES: PromptDefinition = {
   id: 'qa-test-cases',

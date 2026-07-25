@@ -7,7 +7,7 @@ import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
 import { summarizeDiff } from '@core/diff-summarizer';
-import { registerAllProviders } from '@platform/llm';
+import { registerAllProviders } from '@platform/llm/register';
 import { generateStructured } from '@core/structured-generation';
 import { DocSyncSchema, DocSyncInputs } from './schema';
 import { collectDocs } from '@core/utils/file-system';

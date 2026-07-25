@@ -1,4 +1,8 @@
-import { PRFixture } from '../types';
+export interface PRFixture {
+  details: unknown;
+  diff: string;
+  files: string[];
+}
 
 export const PR_FIXTURES: Record<string, PRFixture> = {
   'small-pr': {

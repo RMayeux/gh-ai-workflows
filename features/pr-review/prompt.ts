@@ -1,4 +1,4 @@
-import { PromptDefinition } from '@core/types/prompt';
+import { PromptDefinition } from '@core/prompt-engine';
 
 export const PR_REVIEW_PROMPT: PromptDefinition = {
   id: 'pr-review',
