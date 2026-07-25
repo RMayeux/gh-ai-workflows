@@ -205,7 +205,7 @@ describe('runDocSyncWorkflow', () => {
     });
 
     const workflowPromise = runDocSyncWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow('LLM Generation failed: Format Error: Unexpected token');
+    const rejection = expect(workflowPromise).rejects.toThrow('LLM generation failed: Format Error: Unexpected token');
     await vi.runAllTimersAsync();
     await rejection;
   });

@@ -165,7 +165,7 @@ describe('runPRMetadataWorkflow', () => {
     });
 
     const workflowPromise = runPRMetadataWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
   });
@@ -178,7 +178,7 @@ describe('runPRMetadataWorkflow', () => {
     });
 
     const workflowPromise = runPRMetadataWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
   });
@@ -193,7 +193,7 @@ describe('runPRMetadataWorkflow', () => {
       finishReason: 'stop',
     });
 
-    await expect(runPRMetadataWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('Failed to update PR: GitHub API Error');
-    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: Failed to update PR: GitHub API Error'));
+    await expect(runPRMetadataWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('GitHub API Error');
+    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: GitHub API Error'));
   });
 });
