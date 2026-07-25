@@ -121,7 +121,7 @@ export class OpenAIProvider implements LLMProvider {
   private normalizeError(e: unknown): Error {
     const message = e instanceof Error ? e.message : String(e);
     if (message.includes('429')) return new RateLimitError(message);
-    if (message.includes('401')) return new AuthenticationError(message);
+    if (message.includes('401') || message.includes('403')) return new AuthenticationError(message);
     if (message.includes('400')) return new InvalidRequestError(message);
     return new ProviderError(message);
   }
