@@ -106,6 +106,10 @@ export async function generateStructured<T>(
       
       clearTimeout(timeoutId!);
 
+      if (response.usage) {
+        Logger.debug(`[StructuredGeneration] Token usage — prompt: ${response.usage.promptTokens}, completion: ${response.usage.completionTokens}, total: ${response.usage.totalTokens}`);
+      }
+
       lastRawResponse = response.text;
       const cleaned = cleanJson(lastRawResponse);
       
