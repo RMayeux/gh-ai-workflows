@@ -14,8 +14,9 @@ export interface GitHubContext {
 export class ContextBuilder {
   constructor(private gh: GitHubClient) {}
 
-  async buildPRContext(owner: string, repo: string, pullNumber: number, options: { 
+  async buildPRContext(owner: string, repo: string, pullNumber: number, options: {
     maxDiffSize?: number;
+    tokenBudget?: number;
     ignoreFiles?: (file: string) => boolean;
   } = {}) {
     const [diff, files, details] = await Promise.all([
@@ -40,9 +41,23 @@ export class ContextBuilder {
       processedDiff = 'diff --git ' + processedDiff;
     }
 
-    const maxDiffSize = options.maxDiffSize || 30000;
-    if (processedDiff.length > maxDiffSize) {
-      processedDiff = processedDiff.substring(0, maxDiffSize) + `\n\n... [Diff truncated to ${maxDiffSize} chars] ...`;
+    processedDiff = processedDiff
+      .split('\n')
+      .filter(l => !l.startsWith(' '))
+      .join('\n');
+
+    if (options.tokenBudget && options.tokenBudget > 0) {
+      const maxChars = options.tokenBudget * 4;
+      if (processedDiff.length > maxChars) {
+        const cutAt = processedDiff.lastIndexOf('\n', maxChars);
+        processedDiff = processedDiff.substring(0, cutAt > 0 ? cutAt : maxChars) + `\n\n... [Diff truncated to ~${options.tokenBudget} tokens] ...`;
+      }
+    } else {
+      const maxDiffSize = options.maxDiffSize || 30000;
+      if (processedDiff.length > maxDiffSize) {
+        const cutAt = processedDiff.lastIndexOf('\n', maxDiffSize);
+        processedDiff = processedDiff.substring(0, cutAt > 0 ? cutAt : maxDiffSize) + `\n\n... [Diff truncated to ${maxDiffSize} chars] ...`;
+      }
     }
 
     return {

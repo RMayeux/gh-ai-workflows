@@ -23,7 +23,7 @@ describe('ContextBuilder', () => {
   });
 
   it('should build a complete PR context successfully', async () => {
-    const mockDiff = 'diff --git a/file.ts b/file.ts\\n+ const x = 1;';
+    const mockDiff = 'diff --git a/file.ts b/file.ts\n+ const x = 1;';
     const mockFiles = ['file.ts', 'utils.ts'];
     const mockDetails = {
       title: 'Test PR',
@@ -68,7 +68,7 @@ describe('ContextBuilder', () => {
     ghClient.getPRDetails.mockResolvedValue({ title: 'T', body: 'B' });
 
     const context = await builder.buildPRContext('owner', 'repo', 1, { maxDiffSize: 100 });
-    expect(context.diff.length).toBeLessThan(200); // 100 + truncation message
+    expect(context.diff.length).toBeLessThan(200);
     expect(context.diff).toContain('[Diff truncated to 100 chars]');
   });
 
@@ -81,5 +81,45 @@ describe('ContextBuilder', () => {
       ignoreFiles: (f) => f.startsWith('dist/')
     });
     expect(context.files).toEqual(['src/index.ts']);
+  });
+
+  it('should strip context lines from diff', async () => {
+    const diffWithContext = `diff --git a/file.ts b/file.ts
+index abc..def 100644
+--- a/file.ts
++++ b/file.ts
+@@ -1,5 +1,6 @@
+ import { x } from './x';
++const b = 2;
+-const c = 3;
+ x();
++baz`;
+    ghClient.getPRDiff.mockResolvedValue(diffWithContext);
+    ghClient.getPRFiles.mockResolvedValue([]);
+    ghClient.getPRDetails.mockResolvedValue({ title: 'T', body: 'B' });
+
+    const context = await builder.buildPRContext('owner', 'repo', 1);
+
+    expect(context.diff).not.toContain("import { x } from './x'");
+    expect(context.diff).not.toContain('x()');
+    expect(context.diff).toContain('+const b = 2;');
+    expect(context.diff).toContain('-const c = 3;');
+    expect(context.diff).toContain('+baz');
+    expect(context.diff).toContain('diff --git a/file.ts b/file.ts');
+    expect(context.diff).toContain('@@ -1,5 +1,6 @@');
+    expect(context.diff).toContain('--- a/file.ts');
+    expect(context.diff).toContain('+++ b/file.ts');
+  });
+
+  it('should truncate diff based on tokenBudget', async () => {
+    const longDiff = 'diff --git a/file.ts b/file.ts\n@@ -1,1 +1,1 @@\n+abcdefghij';
+    ghClient.getPRDiff.mockResolvedValue(longDiff.repeat(2000));
+    ghClient.getPRFiles.mockResolvedValue([]);
+    ghClient.getPRDetails.mockResolvedValue({ title: 'T', body: 'B' });
+
+    const context = await builder.buildPRContext('owner', 'repo', 1, { tokenBudget: 50 });
+
+    expect(context.diff).toContain('[Diff truncated to ~50 tokens]');
+    expect(context.diff.length).toBeLessThan(300);
   });
 });
