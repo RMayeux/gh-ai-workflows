@@ -6,7 +6,6 @@ import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
 import { PRReviewSchema } from './schema';
 import { upsertBotComment, syncLabels } from '@platform/github';
-import { formatAIList } from '@core/utils/markdown';
 import { formatTimestamp } from '@core/utils/date';
 import { PR_REVIEW_PROMPT } from './prompt';
 import { createRunner } from '@core/workflow-runner';
@@ -60,12 +59,20 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
     const previousCommentBody = botComment?.body || '';
 
+    // ponytail: truncate previous comment to 2000 chars, conditional template avoids empty section
+    const MAX_PREV_CHARS = 2000;
+    const truncatedComment = previousCommentBody.length > MAX_PREV_CHARS
+      ? previousCommentBody.slice(0, MAX_PREV_CHARS) + '\n\n_(previous comment truncated)'
+      : previousCommentBody;
+    const hasPrevious = truncatedComment.length > 0;
+
     const prompt = PromptEngine.render(PR_REVIEW_PROMPT, {
       pr_title: context.details.title,
       pr_body: context.details.body ?? '',
       changed_files: context.files.join(', '),
       code_diff: context.diff,
-      previous_comment: previousCommentBody,
+      previous_comment: truncatedComment,
+      has_previous: hasPrevious,
     });
 
     // 4. Generate Structured Review

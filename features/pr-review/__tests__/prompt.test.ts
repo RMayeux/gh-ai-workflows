@@ -8,6 +8,16 @@ const MOCK_INPUTS = {
   changed_files: 'src/auth.ts, src/user.ts',
   code_diff: 'diff --git a/src/auth.ts b/src/auth.ts\n--- a/src/auth.ts\n+++ b/src/auth.ts\n@@ -1,1 +1,1 @@\n-const x = 1;\n+const x = 2;',
   previous_comment: 'Previous review content',
+  has_previous: true,
+};
+
+const EMPTY_INPUTS = {
+  pr_title: 'feat: add user authentication',
+  pr_body: 'This PR implements JWT based auth.',
+  changed_files: 'src/auth.ts, src/user.ts',
+  code_diff: 'diff --git a/src/auth.ts b/src/auth.ts\n--- a/src/auth.ts\n+++ b/src/auth.ts\n@@ -1,1 +1,1 @@\n-const x = 1;\n+const x = 2;',
+  previous_comment: '',
+  has_previous: false,
 };
 
 describe('PR_REVIEW_PROMPT', () => {
@@ -18,7 +28,14 @@ describe('PR_REVIEW_PROMPT', () => {
     expect(rendered.user).toContain(`Description: ${MOCK_INPUTS.pr_body}`);
     expect(rendered.user).toContain(`# CHANGED FILES\n${MOCK_INPUTS.changed_files}`);
     expect(rendered.user).toContain(`# CODE DIFF\n${MOCK_INPUTS.code_diff}`);
-    expect(rendered.user).toContain(`## Previous review comment (if any):\n${MOCK_INPUTS.previous_comment}`);
+    expect(rendered.user).toContain(`Previous review comment`);
+    expect(rendered.user).toContain(MOCK_INPUTS.previous_comment);
+  });
+
+  it('should omit previous comment section when has_previous is false', () => {
+    const rendered = PromptEngine.render(PR_REVIEW_PROMPT, EMPTY_INPUTS);
+    
+    expect(rendered.user).not.toContain(`Previous review comment`);
   });
 
   it('should handle variables with special regex characters without corrupting the prompt', () => {
@@ -33,7 +50,6 @@ describe('PR_REVIEW_PROMPT', () => {
     
     expect(rendered.user).toContain(`Title: ${SPECIAL_INPUTS.pr_title}`);
     expect(rendered.user).toContain(`Description: ${SPECIAL_INPUTS.pr_body}`);
-    expect(rendered.user).toContain(`## Previous review comment (if any):\n${SPECIAL_INPUTS.previous_comment}`);
   });
 
   it('should be deterministic', () => {
