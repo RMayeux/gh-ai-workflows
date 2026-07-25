@@ -54,7 +54,6 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
     Logger.log('Step 3: Loading and rendering prompt...');
 
     const prompt = PromptEngine.render(PR_METADATA_PROMPT, {
-      registry: '',
       changed_files: context.files.join('\\n'),
       code_diff: context.diff,
       pr_title: context.details.title,
