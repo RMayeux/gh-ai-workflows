@@ -24,6 +24,14 @@ export class PromptEngine {
     return val !== undefined && val !== false && val !== 0 && val !== '';
   }
 
+  private static getRequired(key: string, variables: PromptVariables): string | number | boolean {
+    const value = variables[key];
+    if (value === undefined) {
+      throw new Error(`Missing required prompt variable: ${key}`);
+    }
+    return value;
+  }
+
   /**
    * Interpolates variables into a template string.
    * Supports {{variable}}, {{#var}}...{{/var}} (truthy), {{^var}}...{{/var}} (falsy).
@@ -32,27 +40,15 @@ export class PromptEngine {
     let result = template;
 
     result = result.replace(/\{\{#(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, key, content) => {
-      const value = variables[key];
-      if (value === undefined) {
-        throw new Error(`Missing required prompt variable: ${key}`);
-      }
-      return this.isTruthy(value) ? content : '';
+      return this.isTruthy(this.getRequired(key, variables)) ? content : '';
     });
 
     result = result.replace(/\{\{\^(\w+)\}\}([\s\S]*?)\{\{\/\1\}\}/g, (_, key, content) => {
-      const value = variables[key];
-      if (value === undefined) {
-        throw new Error(`Missing required prompt variable: ${key}`);
-      }
-      return this.isTruthy(value) ? '' : content;
+      return this.isTruthy(this.getRequired(key, variables)) ? '' : content;
     });
 
-    result = result.replace(/\{\{(\w+)\}\}/g, (match, key) => {
-      const value = variables[key];
-      if (value === undefined) {
-        throw new Error(`Missing required prompt variable: ${key}`);
-      }
-      return String(value);
+    result = result.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+      return String(this.getRequired(key, variables));
     });
 
     return result;
