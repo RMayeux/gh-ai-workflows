@@ -1,5 +1,3 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import { GitHubClient, ContextBuilder } from '@platform/github';
 import { generateStructured } from '@core/structured-generation';
 import { ProviderRegistry } from '@core/registry';
@@ -8,10 +6,10 @@ import { Logger } from '@core/telemetry';
 import { registerAllProviders } from '@platform/llm';
 import { QATestCasesSchema, QATestCasesInputs, QATestCasesInputsSchema } from './schema';
 import { upsertBotComment } from '@platform/github/comments';
-import { formatAIList } from '@core/utils/markdown';
 import { collectDocs } from '@core/utils/file-system';
 import { formatTimestamp } from '@core/utils/date';
 import { QA_TEST_CASES } from './prompt';
+import { createRunner } from '@core/workflow-runner';
 
 export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githubClient?: GitHubClient }) {
   const {
@@ -133,36 +131,16 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
   }
 }
 
-async function main() {
-  const envInputs = {
-    githubToken: process.env.GITHUB_TOKEN,
-    llm: process.env.LLM,
-    model: process.env.MODEL,
-    apiKey: process.env.API_KEY,
-    owner: process.env.GITHUB_REPOSITORY_OWNER,
-    repo: process.env.GITHUB_REPOSITORY_NAME,
-    pullNumber: process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER ? parseInt(process.env.GITHUB_EVENT_PULL_REQUEST_NUMBER, 10) : undefined,
-    projectContext: process.env.PROJECT_CONTEXT,
-    docPattern: process.env.DOC_PATTERN,
-    debug: process.env.DEBUG === 'true',
-  };
-
-  const validation = QATestCasesInputsSchema.safeParse(envInputs);
-  if (!validation.success) {
-    console.error('Invalid or missing environment variables:');
-    console.error(JSON.stringify(validation.error.format(), null, 2));
-    process.exit(1);
-  }
-
-  try {
-    await runQATestCasesWorkflow(validation.data);
-    process.exit(0);
-  } catch (error) {
-    console.error('Workflow failed:', error);
-    process.exit(1);
-  }
-}
-
 if (process.env.NODE_ENV !== 'test') {
-  main();
+  createRunner(runQATestCasesWorkflow, {
+    requiredEnvVars: ['GITHUB_EVENT_PULL_REQUEST_NUMBER'],
+    validate: (inputs) => {
+      const result = QATestCasesInputsSchema.safeParse(inputs);
+      if (!result.success) {
+        console.error('Invalid or missing environment variables:');
+        console.error(JSON.stringify(result.error.format(), null, 2));
+      }
+      return { success: result.success, error: result.success ? undefined : { message: JSON.stringify(result.error.format()) } };
+    },
+  }).run();
 }

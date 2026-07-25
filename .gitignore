@@ -60,6 +60,9 @@ temp/
 # GitHub Actions
 .github/workflows/*.local.yml
 
+# Graphify knowledge graph output
+graphify-out/
+
 # Package manager locks - We keep pnpm-lock.yaml but ignore others if they accidentally appear
 package-lock.json
 yarn.lock
