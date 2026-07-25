@@ -87,10 +87,10 @@ You MUST NOT:
 
 Title: {{pr_title}}
 Description: {{pr_body}}
-
-## Previous review comment (if any):
+{{#has_previous}}
+## Previous review comment:
 {{previous_comment}}
-
+{{/has_previous}}
 # CHANGED FILES
 {{changed_files}}
 

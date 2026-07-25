@@ -82,26 +82,28 @@ You MUST NOT:
 
 Title: {{pr_title}}
 Description: {{pr_body}}
-
-## Previous review comment (if any):
+{{#has_previous}}
+## Previous review comment:
 {{previous_comment}}
-
+{{/has_previous}}
 # CHANGED FILES
 {{changed_files}}
 
 # CODE DIFF
 {{code_diff}}
 
-Provide a summary of the changes, a list of specific issues (with severity and status), resolved issues since the last review, and a final decision on whether the PR is approved.`,overrides:{}};async function v(t){let{githubToken:n,llm:l,model:f,apiKey:p,owner:m,repo:v,pullNumber:y,maxTokens:b=4096,debug:x=!1,githubClient:S}=t;x&&a.debug(`Running PR Review Workflow for ${m}/${v}#${y}`);try{a.log(`Step 1: Initializing GitHub Client...`);let t=S||new r(n);a.log(`Step 2: Gathering PR context...`);let C=await new i(t).buildPRContext(m,v,y).catch(e=>{throw Error(`Failed to gather PR context: ${e.message}`)});a.log(`Step 3: Loading and rendering prompt...`);let w=(await t.listComments(m,v,y)).filter(e=>e.body?.includes(`### 🤖 AI Code Review`)).sort((e,t)=>new Date(t.created_at).getTime()-new Date(e.created_at).getTime())[0]?.body||``,T=d.render(_,{pr_title:C.details.title,pr_body:C.details.body??``,changed_files:C.files.join(`, `),code_diff:C.diff,previous_comment:w});a.log(`Step 4: Generating review using ${l}:${f}...`),c();let E=await e(o.create(l,{apiKey:p,model:f}),g,{prompt:T.user,systemPrompt:T.system,maxTokens:b},{maxRetries:3,jsonMode:!0}).catch(e=>{throw Error(`LLM request failed: ${e.message}`)});if(!E.success)throw Error(`LLM Review failed: ${E.error}`);let D=E.data;x&&a.debug(`Generated Review:`,D),a.log(`Step 5: Posting review comment to GitHub...`);let O=`### 🤖 AI Code Review — updated ${h()}\n\n`;O+=`**Summary:** ${D.summary}\n\n`;let k=D.issues.filter(e=>e.status===`new`),A=D.issues.filter(e=>e.status===`persisting`);return k.length>0&&(O+=`**New issues**
-`,O+=k.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
+Provide a summary of the changes, a list of specific issues (with severity and status), resolved issues since the last review, and a final decision on whether the PR is approved.`,overrides:{}};async function v(t){let{githubToken:n,llm:l,model:f,apiKey:p,owner:m,repo:v,pullNumber:y,maxTokens:b=4096,debug:x=!1,githubClient:S}=t;x&&a.debug(`Running PR Review Workflow for ${m}/${v}#${y}`);try{a.log(`Step 1: Initializing GitHub Client...`);let t=S||new r(n);a.log(`Step 2: Gathering PR context...`);let C=await new i(t).buildPRContext(m,v,y).catch(e=>{throw Error(`Failed to gather PR context: ${e.message}`)});a.log(`Step 3: Loading and rendering prompt...`);let w=(await t.listComments(m,v,y)).filter(e=>e.body?.includes(`### 🤖 AI Code Review`)).sort((e,t)=>new Date(t.created_at).getTime()-new Date(e.created_at).getTime())[0]?.body||``,T=2e3,E=w.length>T?w.slice(0,T)+`
+
+_(previous comment truncated)`:w,D=E.length>0,O=d.render(_,{pr_title:C.details.title,pr_body:C.details.body??``,changed_files:C.files.join(`, `),code_diff:C.diff,previous_comment:E,has_previous:D});a.log(`Step 4: Generating review using ${l}:${f}...`),c();let k=await e(o.create(l,{apiKey:p,model:f}),g,{prompt:O.user,systemPrompt:O.system,maxTokens:b},{maxRetries:3,jsonMode:!0}).catch(e=>{throw Error(`LLM request failed: ${e.message}`)});if(!k.success)throw Error(`LLM Review failed: ${k.error}`);let A=k.data;x&&a.debug(`Generated Review:`,A),a.log(`Step 5: Posting review comment to GitHub...`);let j=`### 🤖 AI Code Review — updated ${h()}\n\n`;j+=`**Summary:** ${A.summary}\n\n`;let M=A.issues.filter(e=>e.status===`new`),N=A.issues.filter(e=>e.status===`persisting`);return M.length>0&&(j+=`**New issues**
+`,j+=M.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
 `)+`
 
-`),A.length>0&&(O+=`**Persisting issues**
-`,O+=A.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
+`),N.length>0&&(j+=`**Persisting issues**
+`,j+=N.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
 `)+`
 
-`),D.resolvedIssues.length>0&&(O+=`**Resolved issues**
-`,O+=D.resolvedIssues.map(e=>`- [x] ${e.description}`).join(`
+`),A.resolvedIssues.length>0&&(j+=`**Resolved issues**
+`,j+=A.resolvedIssues.map(e=>`- [x] ${e.description}`).join(`
 `)+`
 
-`),D.issues.length===0&&D.resolvedIssues.length===0?O+=`✅ No issues found!`:D.issues.length===0&&(O+=`✅ All previous issues have been resolved!`),await s(t,m,v,y,`### 🤖 AI Code Review`,O).catch(e=>{throw Error(`Failed to post comment: ${e.message}`)}),a.log(`Step 6: Applying PR labels...`),await u(t,m,v,y,{add:D.approved?[`approved`]:[`needs-changes`]}),a.log(`PR Review Workflow completed successfully.`),D}catch(e){let t=e instanceof Error?e.message:String(e);throw a.error(`Workflow failed at step: ${t}`),e}}process.env.NODE_ENV!==`test`&&p(v,{requiredEnvVars:[`GITHUB_EVENT_PULL_REQUEST_NUMBER`]}).run();export{v as runPRReviewWorkflow};
+`),A.issues.length===0&&A.resolvedIssues.length===0?j+=`✅ No issues found!`:A.issues.length===0&&(j+=`✅ All previous issues have been resolved!`),await s(t,m,v,y,`### 🤖 AI Code Review`,j).catch(e=>{throw Error(`Failed to post comment: ${e.message}`)}),a.log(`Step 6: Applying PR labels...`),await u(t,m,v,y,{add:A.approved?[`approved`]:[`needs-changes`]}),a.log(`PR Review Workflow completed successfully.`),A}catch(e){let t=e instanceof Error?e.message:String(e);throw a.error(`Workflow failed at step: ${t}`),e}}process.env.NODE_ENV!==`test`&&p(v,{requiredEnvVars:[`GITHUB_EVENT_PULL_REQUEST_NUMBER`]}).run();export{v as runPRReviewWorkflow};
