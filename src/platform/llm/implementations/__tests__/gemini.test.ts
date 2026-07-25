@@ -92,39 +92,45 @@ describe('GeminiProvider', () => {
   });
 
   it('throws RateLimitError on 429', async () => {
-    mockFetch.mockResolvedValue(mockErrorResponse(429));
+    mockFetch.mockResolvedValue(mockErrorResponse(429, { error: { message: 'Rate limited' } }));
     const provider = createProvider();
     await expect(provider.generate(defaultRequest)).rejects.toThrow(RateLimitError);
+    await expect(provider.generate(defaultRequest)).rejects.toMatchObject({ message: expect.stringContaining('Rate limited') });
   });
 
   it('throws AuthenticationError on 401', async () => {
-    mockFetch.mockResolvedValue(mockErrorResponse(401));
+    mockFetch.mockResolvedValue(mockErrorResponse(401, { error: { message: 'Bad key' } }));
     const provider = createProvider();
     await expect(provider.generate(defaultRequest)).rejects.toThrow(AuthenticationError);
+    await expect(provider.generate(defaultRequest)).rejects.toMatchObject({ message: expect.stringContaining('Bad key') });
   });
 
   it('throws AuthenticationError on 403', async () => {
-    mockFetch.mockResolvedValue(mockErrorResponse(403));
+    mockFetch.mockResolvedValue(mockErrorResponse(403, { error: { message: 'Forbidden' } }));
     const provider = createProvider();
     await expect(provider.generate(defaultRequest)).rejects.toThrow(AuthenticationError);
+    await expect(provider.generate(defaultRequest)).rejects.toMatchObject({ message: expect.stringContaining('Forbidden') });
   });
 
   it('throws InvalidRequestError on 400', async () => {
-    mockFetch.mockResolvedValue(mockErrorResponse(400));
+    mockFetch.mockResolvedValue(mockErrorResponse(400, { error: { message: 'Bad request' } }));
     const provider = createProvider();
     await expect(provider.generate(defaultRequest)).rejects.toThrow(InvalidRequestError);
+    await expect(provider.generate(defaultRequest)).rejects.toMatchObject({ message: expect.stringContaining('Bad request') });
   });
 
   it('throws ProviderError on 500', async () => {
     mockFetch.mockResolvedValue(mockErrorResponse(500, { error: { message: 'Internal error' } }));
     const provider = createProvider();
     await expect(provider.generate(defaultRequest)).rejects.toThrow(ProviderError);
+    await expect(provider.generate(defaultRequest)).rejects.toMatchObject({ message: expect.stringContaining('Internal error') });
   });
 
   it('throws ProviderError when fetch fails', async () => {
     mockFetch.mockRejectedValue(new Error('Network failure'));
     const provider = createProvider();
     await expect(provider.generate(defaultRequest)).rejects.toThrow(ProviderError);
+    await expect(provider.generate(defaultRequest)).rejects.toMatchObject({ message: expect.stringContaining('Network failure') });
   });
 
   it('handles missing API key', async () => {

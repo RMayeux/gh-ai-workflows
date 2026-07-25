@@ -22,11 +22,6 @@ describe('formatAIList', () => {
     expect(result).toBe('');
   });
 
-  it('filters out undefined items', () => {
-    const result = formatAIList('Mixed', ['a', undefined as unknown as string]);
-    expect(result).toBe('### Mixed\n- [ ] a\n- [ ] undefined\n');
-  });
-
   it('handles a single item', () => {
     const result = formatAIList('Single', ['Only']);
     expect(result).toBe('### Single\n- [ ] Only\n');

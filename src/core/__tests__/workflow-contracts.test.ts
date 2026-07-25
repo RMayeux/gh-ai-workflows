@@ -18,8 +18,8 @@ describe('validateWorkflowInput', () => {
     expect(result).toEqual({ name: 'test', count: 42 });
   });
 
-  it('keeps a non-JSON string as-is and lets schema validate', () => {
-    expect(() => validateWorkflowInput(testContract, 'just-a-string')).toThrow();
+  it('throws when input is a non-JSON string that fails schema validation', () => {
+    expect(() => validateWorkflowInput(testContract, 'just-a-string')).toThrow(z.ZodError);
   });
 
   it('throws ZodError when input does not match schema', () => {

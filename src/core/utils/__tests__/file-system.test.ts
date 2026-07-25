@@ -22,7 +22,11 @@ describe('getAllFilesRecursive', () => {
     });
 
     const result = getAllFilesRecursive('/root');
+
     expect(result).toEqual(['/root/a.ts', '/root/b.ts']);
+    expect(vi.mocked(readdirSync)).toHaveBeenCalledWith('/root');
+    expect(vi.mocked(existsSync)).toHaveBeenCalledWith('/root/a.ts');
+    expect(vi.mocked(existsSync)).toHaveBeenCalledWith('/root/b.ts');
   });
 
   it('skips directories named .git, node_modules, dist', () => {
@@ -46,24 +50,32 @@ describe('getAllFilesRecursive', () => {
     dirContents['/root/dir'] = ['nested.ts'];
 
     const result = getAllFilesRecursive('/root');
+
     expect(result).toContain('/root/file.ts');
     expect(result).toContain('/root/dir/nested.ts');
+    expect(vi.mocked(readdirSync)).toHaveBeenCalledWith('/root');
+    expect(vi.mocked(readdirSync)).toHaveBeenCalledWith('/root/dir');
   });
 
   it('handles readdir errors gracefully inside recursion', () => {
     vi.mocked(readdirSync)
-      .mockReturnValueOnce(['a', 'b'] as never)
+      .mockReturnValueOnce(['subdir'] as never)
       .mockImplementationOnce(() => { throw new Error('permission denied'); });
-    vi.mocked(existsSync).mockReturnValue(false);
+    vi.mocked(existsSync).mockReturnValue(true);
 
     const result = getAllFilesRecursive('/root');
+
     expect(result).toEqual([]);
+    expect(vi.mocked(readdirSync)).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(readdirSync)).toHaveBeenNthCalledWith(1, '/root');
+    expect(vi.mocked(readdirSync)).toHaveBeenNthCalledWith(2, '/root/subdir');
   });
 
   it('handles empty directory', () => {
     vi.mocked(readdirSync).mockReturnValue([]);
     const result = getAllFilesRecursive('/root');
     expect(result).toEqual([]);
+    expect(vi.mocked(readdirSync)).toHaveBeenCalledWith('/root');
   });
 });
 
@@ -84,8 +96,10 @@ describe('collectDocs', () => {
     });
 
     const result = collectDocs('\\.md$');
+
     expect(result).toContain('--- FILE: doc.md ---');
     expect(result).toContain('# Doc content');
+    expect(vi.mocked(readFileSync)).toHaveBeenCalled();
   });
 
   it('returns empty string when no files match the pattern', () => {
@@ -94,7 +108,9 @@ describe('collectDocs', () => {
     vi.mocked(readFileSync).mockReturnValue('# Doc content');
 
     const result = collectDocs('\\.txt$');
+
     expect(result).toBe('');
+    expect(vi.mocked(readFileSync)).not.toHaveBeenCalled();
   });
 
   it('skips files that fail to read', () => {
@@ -103,12 +119,15 @@ describe('collectDocs', () => {
     vi.mocked(readFileSync).mockImplementation(() => { throw new Error('EACCES'); });
 
     const result = collectDocs('\\.md$');
+
     expect(result).toBe('');
+    expect(vi.mocked(readFileSync)).toHaveBeenCalled();
   });
 
   it('handles empty directory', () => {
     vi.mocked(readdirSync).mockReturnValue([]);
     const result = collectDocs('\\.md$');
     expect(result).toBe('');
+    expect(vi.mocked(readdirSync)).toHaveBeenCalledWith('/root');
   });
 });
