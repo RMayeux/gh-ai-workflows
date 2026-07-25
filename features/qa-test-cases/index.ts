@@ -3,6 +3,7 @@ import { generateStructured } from '@core/structured-generation';
 import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
+import { summarizeDiff } from '@core/diff-summarizer';
 import { registerAllProviders } from '@platform/llm';
 import { QATestCasesSchema, QATestCasesInputs, QATestCasesInputsSchema } from './schema';
 import { upsertBotComment } from '@platform/github/comments';
@@ -23,6 +24,8 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     projectContext,
     docPattern,
     debug = false,
+    summaryLlm,
+    summaryModel,
     githubClient: injectedClient,
   } = inputs;
 
@@ -39,6 +42,15 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
     const context = await contextBuilder.buildPRContext(owner, repo, pullNumber).catch(err => {
       throw new Error(`Failed to build PR context: ${err instanceof Error ? err.message : String(err)}`);
     });
+
+    // Summarize diff if a summary provider is configured
+    let codeDiff = context.diff;
+    if (summaryLlm && summaryModel) {
+      Logger.log('Step 2b: Summarizing large diff...');
+      registerAllProviders();
+      const summaryProvider = ProviderRegistry.create(summaryLlm, { apiKey, model: summaryModel });
+      codeDiff = await summarizeDiff(codeDiff, summaryProvider);
+    }
 
     // 3. Collect Docs (Optional)
     let projectDocs = '';
@@ -65,7 +77,7 @@ export async function runQATestCasesWorkflow(inputs: QATestCasesInputs & { githu
 
     const prompt = PromptEngine.render(QA_TEST_CASES, {
       project_context: projectContext || 'No project context provided.',
-      code_diff: context.diff,
+      code_diff: codeDiff,
       documentation: projectDocs || 'No documentation provided for these changes.',
       previous_comment: previousCommentBody,
       date,

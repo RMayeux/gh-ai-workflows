@@ -7,6 +7,7 @@ import { generateStructured } from '@core/structured-generation';
 import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
+import { summarizeDiff } from '@core/diff-summarizer';
 import { registerAllProviders } from '@platform/llm';
 import { DocSyncSchema, DocSyncInputs } from './schema';
 import { collectDocs } from '@core/utils/file-system';
@@ -63,6 +64,8 @@ export async function runDocSyncWorkflow(inputs: DocSyncInputs & { githubClient?
     lookbackCommits = 10,
     docPattern = '.*\\.md',
     debug = false,
+    summaryLlm,
+    summaryModel,
     githubClient: injectedClient,
   } = inputs;
 
@@ -84,7 +87,14 @@ export async function runDocSyncWorkflow(inputs: DocSyncInputs & { githubClient?
         throw new Error(`Failed to build PR context: ${err instanceof Error ? err.message : String(err)}`);
       });
       codeDiff = context.diff;
-      
+
+      if (summaryLlm && summaryModel) {
+        Logger.log('Step 2b: Summarizing large diff...');
+        registerAllProviders();
+        const summaryProvider = ProviderRegistry.create(summaryLlm, { apiKey, model: summaryModel });
+        codeDiff = await summarizeDiff(codeDiff, summaryProvider);
+      }
+
       const prDetails = await gh.getPRDetails(owner, repo, pullNumber);
       baseBranch = prDetails.base.ref;
     } else {
@@ -102,6 +112,13 @@ export async function runDocSyncWorkflow(inputs: DocSyncInputs & { githubClient?
       if (!codeDiff) {
         Logger.log('No changes found between baseline and HEAD.');
         return { synced: false, changes: [] };
+      }
+
+      if (summaryLlm && summaryModel) {
+        Logger.log('Step 2b: Summarizing large diff...');
+        registerAllProviders();
+        const summaryProvider = ProviderRegistry.create(summaryLlm, { apiKey, model: summaryModel });
+        codeDiff = await summarizeDiff(codeDiff, summaryProvider);
       }
     }
 

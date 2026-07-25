@@ -24,6 +24,12 @@ inputs:
     description: 'Enable debug logging'
     required: false
     default: 'false'
+  summary-llm:
+    description: 'LLM provider for diff summarization (optional, defaults to none)'
+    required: false
+  summary-model:
+    description: 'Model for diff summarization (required if summary-llm is set)'
+    required: false
 runs:
   using: 'composite'
   steps:
@@ -35,6 +41,8 @@ runs:
         export API_KEY="${{ inputs.api-key }}"
         export GITHUB_TOKEN="${{ inputs.github-token }}"
         export DEBUG="${{ inputs.debug }}"
+        export SUMMARY_LLM="${{ inputs.summary-llm }}"
+        export SUMMARY_MODEL="${{ inputs.summary-model }}"
         export GITHUB_REPOSITORY_OWNER="${GITHUB_REPOSITORY%%/*}"
         export GITHUB_REPOSITORY_NAME="${GITHUB_REPOSITORY#*/}"
         export GITHUB_EVENT_PULL_REQUEST_NUMBER="${{ github.event.pull_request.number }}"

@@ -34,6 +34,8 @@ export const DocSyncInputsSchema = z.object({
     .describe('Number of commits to look back if no audit PR is found'),
   docPattern: z.string().describe('Regex to find documentation files in the repository'),
   debug: z.boolean().optional(),
+  summaryLlm: z.string().optional(),
+  summaryModel: z.string().optional(),
 });
 
 export type DocSyncInputs = z.infer<typeof DocSyncInputsSchema>;

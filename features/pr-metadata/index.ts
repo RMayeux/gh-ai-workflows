@@ -3,6 +3,7 @@ import { generateStructured } from '@core/structured-generation';
 import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
+import { summarizeDiff } from '@core/diff-summarizer';
 import { registerAllProviders } from '@platform/llm';
 import { PRMetadataSchema } from './schema';
 import { syncLabels } from '@platform/github/labels';
@@ -19,6 +20,8 @@ export interface PRMetadataWorkflowInputs {
   pullNumber: number;
   maxTokens?: number;
   debug?: boolean;
+  summaryLlm?: string;
+  summaryModel?: string;
 }
 
 
@@ -33,6 +36,8 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
     pullNumber,
     maxTokens = 4096,
     debug = false,
+    summaryLlm,
+    summaryModel,
     githubClient: injectedClient,
   } = inputs;
 
@@ -50,12 +55,21 @@ export async function runPRMetadataWorkflow(inputs: PRMetadataWorkflowInputs & {
       throw new Error(`Failed to build PR context: ${err.message}`);
     });
 
+    // Summarize diff if a summary provider is configured
+    let codeDiff = context.diff;
+    if (summaryLlm && summaryModel) {
+      Logger.log('Step 2b: Summarizing large diff...');
+      registerAllProviders();
+      const summaryProvider = ProviderRegistry.create(summaryLlm, { apiKey, model: summaryModel });
+      codeDiff = await summarizeDiff(codeDiff, summaryProvider);
+    }
+
     // 3. Load Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
 
     const prompt = PromptEngine.render(PR_METADATA_PROMPT, {
       changed_files: context.files.join('\\n'),
-      code_diff: context.diff,
+      code_diff: codeDiff,
       pr_title: context.details.title,
       pr_body: context.details.body ?? '',
     });

@@ -3,6 +3,7 @@ import { generateStructured } from '@core/structured-generation';
 import { ProviderRegistry } from '@core/registry';
 import { PromptEngine } from '@core/prompt-engine';
 import { Logger } from '@core/telemetry';
+import { summarizeDiff } from '@core/diff-summarizer';
 import { registerAllProviders } from '@platform/llm';
 import { PRReviewSchema } from './schema';
 import { upsertBotComment, syncLabels } from '@platform/github';
@@ -20,6 +21,8 @@ export interface PRReviewWorkflowInputs {
   pullNumber: number;
   maxTokens?: number;
   debug?: boolean;
+  summaryLlm?: string;
+  summaryModel?: string;
 }
 
 export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { githubClient?: GitHubClient }) {
@@ -33,6 +36,8 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     pullNumber,
     maxTokens = 4096,
     debug = false,
+    summaryLlm,
+    summaryModel,
     githubClient: injectedClient,
   } = inputs;
 
@@ -49,6 +54,15 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
     const context = await contextBuilder.buildPRContext(owner, repo, pullNumber).catch(err => {
       throw new Error(`Failed to gather PR context: ${err.message}`);
     });
+
+    // Summarize diff if a summary provider is configured
+    let codeDiff = context.diff;
+    if (summaryLlm && summaryModel) {
+      Logger.log('Step 2b: Summarizing large diff...');
+      registerAllProviders();
+      const summaryProvider = ProviderRegistry.create(summaryLlm, { apiKey, model: summaryModel });
+      codeDiff = await summarizeDiff(codeDiff, summaryProvider);
+    }
 
     // 3. Load and Render Prompt
     Logger.log('Step 3: Loading and rendering prompt...');
@@ -70,7 +84,7 @@ export async function runPRReviewWorkflow(inputs: PRReviewWorkflowInputs & { git
       pr_title: context.details.title,
       pr_body: context.details.body ?? '',
       changed_files: context.files.join(', '),
-      code_diff: context.diff,
+      code_diff: codeDiff,
       previous_comment: truncatedComment,
       has_previous: hasPrevious,
     });
