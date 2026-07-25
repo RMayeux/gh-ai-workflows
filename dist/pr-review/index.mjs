@@ -1,4 +1,4 @@
-import{_ as e,a as t,c as n,d as r,f as i,g as a,h as o,i as s,l as c,m as l,n as u,o as d,p as f,r as p,s as m,t as h}from"../workflow-runner-DqAlT4Z4.mjs";import{t as g}from"../date-BLOVFp3M.mjs";const _=r({summary:i().min(1,`Summary is required`),issues:n(r({severity:m([`error`,`warning`,`info`]),status:m([`new`,`persisting`]),description:i()})).default([]),resolvedIssues:n(r({description:i()})).default([]),approved:c().default(!1)}),v={id:`pr-review`,system:`You are a staff engineer reviewing a PR diff. Return ONLY valid JSON with this schema:
+import{_ as e,a as t,c as n,g as r,h as i,i as a,l as o,n as s,o as c,t as l}from"../workflow-pipeline-BIGenON_.mjs";import{t as u}from"../date-BLOVFp3M.mjs";const d=n({summary:o().min(1,`Summary is required`),issues:t(n({severity:a([`error`,`warning`,`info`]),status:a([`new`,`persisting`]),description:o()})).default([]),resolvedIssues:t(n({description:o()})).default([]),approved:c().default(!1)}),f={id:`pr-review`,system:`You are a staff engineer reviewing a PR diff. Return ONLY valid JSON with this schema:
 {"summary":"string","issues":[{"severity":"error|warning|info","status":"new|persisting","description":"string"}],"resolvedIssues":[{"description":"string"}],"approved":boolean}
 
 No code fences, no preamble, no trailing commas. Omit issues/resolvedIssues arrays if empty.
@@ -22,18 +22,18 @@ Description: {{pr_body}}
 # CODE DIFF
 {{code_diff}}
 
-Provide a summary of the changes, a list of specific issues (with severity and status), resolved issues since the last review, and a final decision on whether the PR is approved.`,overrides:{}};async function y(n){let{githubToken:r,llm:i,model:c,apiKey:m,owner:h,repo:y,pullNumber:b,maxTokens:x=4096,debug:S=!1,summaryLlm:C,summaryModel:w,githubClient:T}=n;S&&a.debug(`Running PR Review Workflow for ${h}/${y}#${b}`);try{a.log(`Step 1: Initializing GitHub Client...`);let n=T||new f(r);a.log(`Step 2: Gathering PR context...`);let E=await new e(n).buildPRContext(h,y,b).catch(e=>{throw Error(`Failed to gather PR context: ${e.message}`)}),D=E.diff;if(C&&w){a.log(`Step 2b: Summarizing large diff...`),u();let e=t.create(C,{apiKey:m,model:w});D=await p(D,e)}a.log(`Step 3: Loading and rendering prompt...`);let O=(await n.listComments(h,y,b)).filter(e=>e.body?.includes(`### 🤖 AI Code Review`)).sort((e,t)=>new Date(t.created_at).getTime()-new Date(e.created_at).getTime())[0]?.body||``,k=2e3,A=O.length>k?O.slice(0,k)+`
+Provide a summary of the changes, a list of specific issues (with severity and status), resolved issues since the last review, and a final decision on whether the PR is approved.`,overrides:{}};async function p(t){let{owner:n,repo:a,pullNumber:o,debug:s}=t;s&&e.debug(`Running PR Review Workflow for ${n}/${a}#${o}`);try{return await l(t,{promptDef:f,schema:d,prepareVariables:async({gh:e,codeDiff:t,context:r})=>{let i=(await e.listComments(n,a,o)).filter(e=>e.body?.includes(`### 🤖 AI Code Review`)).sort((e,t)=>new Date(t.created_at).getTime()-new Date(e.created_at).getTime())[0]?.body||``,s=2e3,c=i.length>s?i.slice(0,s)+`
 
-_(previous comment truncated)`:O,j=A.length>0,M=s.render(v,{pr_title:E.details.title,pr_body:E.details.body??``,changed_files:E.files.join(`, `),code_diff:D,previous_comment:A,has_previous:j});a.log(`Step 4: Generating review using ${i}:${c}...`),u();let N=await d(t.create(i,{apiKey:m,model:c}),_,{prompt:M.user,systemPrompt:M.system,maxTokens:x},{maxRetries:3,jsonMode:!0}).catch(e=>{throw Error(`LLM request failed: ${e.message}`)});if(!N.success)throw Error(`LLM Review failed: ${N.error}`);let P=N.data;S&&a.debug(`Generated Review:`,P),a.log(`Step 5: Posting review comment to GitHub...`);let F=`### 🤖 AI Code Review — updated ${g()}\n\n`;F+=`**Summary:** ${P.summary}\n\n`;let I=P.issues.filter(e=>e.status===`new`),L=P.issues.filter(e=>e.status===`persisting`);return I.length>0&&(F+=`**New issues**
-`,F+=I.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
+_(previous comment truncated)`:i,l=c.length>0;return{pr_title:r.details.title,pr_body:r.details.body??``,changed_files:r.files.join(`, `),code_diff:t,previous_comment:c,has_previous:l}},handleResult:async({gh:e},t)=>{let s=`### 🤖 AI Code Review — updated ${u()}\n\n`;s+=`**Summary:** ${t.summary}\n\n`;let c=t.issues.filter(e=>e.status===`new`),l=t.issues.filter(e=>e.status===`persisting`);c.length>0&&(s+=`**New issues**
+`,s+=c.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
 `)+`
 
-`),L.length>0&&(F+=`**Persisting issues**
-`,F+=L.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
+`),l.length>0&&(s+=`**Persisting issues**
+`,s+=l.map(e=>`- [ ] [${e.severity}] ${e.description}`).join(`
 `)+`
 
-`),P.resolvedIssues.length>0&&(F+=`**Resolved issues**
-`,F+=P.resolvedIssues.map(e=>`- [x] ${e.description}`).join(`
+`),t.resolvedIssues.length>0&&(s+=`**Resolved issues**
+`,s+=t.resolvedIssues.map(e=>`- [x] ${e.description}`).join(`
 `)+`
 
-`),P.issues.length===0&&P.resolvedIssues.length===0?F+=`✅ No issues found!`:P.issues.length===0&&(F+=`✅ All previous issues have been resolved!`),await o(n,h,y,b,`### 🤖 AI Code Review`,F).catch(e=>{throw Error(`Failed to post comment: ${e.message}`)}),a.log(`Step 6: Applying PR labels...`),await l(n,h,y,b,{add:P.approved?[`approved`]:[`needs-changes`]}),a.log(`PR Review Workflow completed successfully.`),P}catch(e){let t=e instanceof Error?e.message:String(e);throw a.error(`Workflow failed at step: ${t}`),e}}process.env.NODE_ENV!==`test`&&h(y,{requiredEnvVars:[`GITHUB_EVENT_PULL_REQUEST_NUMBER`]}).run();export{y as runPRReviewWorkflow};
+`),t.issues.length===0&&t.resolvedIssues.length===0?s+=`✅ No issues found!`:t.issues.length===0&&(s+=`✅ All previous issues have been resolved!`),await r(e,n,a,o,`### 🤖 AI Code Review`,s),await i(e,n,a,o,{add:t.approved?[`approved`]:[`needs-changes`]})}})}catch(t){let n=t instanceof Error?t.message:String(t);throw e.error(`Workflow failed at step: ${n}`),t}}process.env.NODE_ENV!==`test`&&s(p,{requiredEnvVars:[`GITHUB_EVENT_PULL_REQUEST_NUMBER`]}).run();export{p as runPRReviewWorkflow};

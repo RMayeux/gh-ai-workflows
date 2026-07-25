@@ -161,7 +161,7 @@ describe('runPRReviewWorkflow', () => {
     });
 
     const workflowPromise = runPRReviewWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Review failed: Format Error/);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
   });
@@ -174,7 +174,7 @@ describe('runPRReviewWorkflow', () => {
     });
 
     const workflowPromise = runPRReviewWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Review failed: Format Error/);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
   });
@@ -189,8 +189,8 @@ describe('runPRReviewWorkflow', () => {
       finishReason: 'stop',
     });
 
-    await expect(runPRReviewWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('Failed to post comment: GitHub API Error');
-    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: Failed to post comment: GitHub API Error'));
+    await expect(runPRReviewWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('GitHub API Error');
+    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: GitHub API Error'));
   });
 
   it('Subsequent run: fetches previous comment and passes it to prompt', async () => {

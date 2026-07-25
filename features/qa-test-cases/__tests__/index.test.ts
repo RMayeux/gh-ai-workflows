@@ -163,7 +163,7 @@ describe('runQATestCasesWorkflow', () => {
     });
 
     const workflowPromise = runQATestCasesWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
   });
@@ -176,7 +176,7 @@ describe('runQATestCasesWorkflow', () => {
     });
 
     const workflowPromise = runQATestCasesWorkflow(MOCK_INPUTS);
-    const rejection = expect(workflowPromise).rejects.toThrow(/LLM Generation failed: Format Error/);
+    const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
   });
@@ -191,8 +191,8 @@ describe('runQATestCasesWorkflow', () => {
       finishReason: 'stop',
     });
 
-    await expect(runQATestCasesWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('Failed to post QA comment: GitHub API Error');
-    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: Failed to post QA comment: GitHub API Error'));
+    await expect(runQATestCasesWorkflow({ ...MOCK_INPUTS, githubClient: gh })).rejects.toThrow('GitHub API Error');
+    expect(Logger.error).toHaveBeenCalledWith(expect.stringContaining('Workflow failed at step: GitHub API Error'));
   });
 
   it('Subsequent run: fetches previous comment and passes it to prompt', async () => {
