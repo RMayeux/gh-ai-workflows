@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { z } from 'zod';
 import { generateStructured, cleanJson } from '../structured-generation';
+import { Logger } from '../telemetry';
 import { LLMProvider, GenerateRequest, GenerateResponse, LLMProviderCapability } from '../../platform/llm/types';
 
 class MockProvider implements LLMProvider {
@@ -61,5 +62,18 @@ describe('generateStructured', () => {
     
     expect(result.success).toBe(false);
     expect(result.error).toContain('LLM Error');
+  });
+
+  it('should log token usage when response has usage data', async () => {
+    vi.stubEnv('DEBUG', 'true');
+    const debugSpy = vi.spyOn(Logger, 'debug');
+    const provider = new MockProvider();
+    const result = await generateStructured(provider, schema, { prompt: 'hello' });
+    
+    expect(result.success).toBe(true);
+    expect(debugSpy).toHaveBeenCalledWith(expect.stringContaining('Token usage — prompt: 1, completion: 1, total: 2'));
+    
+    debugSpy.mockRestore();
+    vi.unstubAllEnvs();
   });
 });

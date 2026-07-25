@@ -1,4 +1,4 @@
-import{a as e,c as t,d as n,f as r,g as i,h as a,i as o,n as s,o as c,p as l,r as u,s as d,t as f,u as p}from"../workflow-runner-C3E85YtQ.mjs";const m=p({title:n().min(1,`Title is required`).max(72,`Title must be under 72 characters`),body:n().min(1,`Body is required`),change_type:c([`feat`,`fix`,`refactor`,`perf`,`docs`,`test`,`build`,`ci`,`chore`]),breaking:t().default(!1),doc_impact:t().default(!1),doc_slugs:d(n()).default([])}),h={id:`pr-metadata`,system:`You are a staff-level engineer analyzing a pull request.
+import{a as e,c as t,d as n,f as r,g as i,h as a,i as o,n as s,o as c,p as l,r as u,s as d,t as f,u as p}from"../workflow-runner-CvtoOyD5.mjs";const m=p({title:n().min(1,`Title is required`).max(72,`Title must be under 72 characters`),body:n().min(1,`Body is required`),change_type:c([`feat`,`fix`,`refactor`,`perf`,`docs`,`test`,`build`,`ci`,`chore`]),breaking:t().default(!1),doc_impact:t().default(!1),doc_slugs:d(n()).default([])}),h={id:`pr-metadata`,system:`You are a staff-level engineer analyzing a pull request.
 Your task: read the diff and produce structured PR metadata.
 ---
 # OUTPUT SCHEMA
