@@ -1,84 +1,14 @@
-import{a as e,c as t,d as n,f as r,g as i,h as a,i as o,m as s,n as c,o as l,p as u,r as d,s as f,t as p,u as m}from"../workflow-runner-oDhNA0sg.mjs";import{t as h}from"../date-BLOVFp3M.mjs";const g=m({summary:n().min(1,`Summary is required`),issues:f(m({severity:l([`error`,`warning`,`info`]),status:l([`new`,`persisting`]),description:n()})).default([]),resolvedIssues:f(m({description:n()})).default([]),approved:t().default(!1)}),_={id:`pr-review`,system:`You are a staff-level engineer performing a code review on a pull request.
-Your task: read the diff and produce a structured technical review.
----
-# OUTPUT SCHEMA
-Return VALID JSON ONLY.
-- No markdown code fences (no \`\`\`json).
-- No preamble, no explanation, no conversational text.
-- Start your response immediately with \`{\` and end with \`}\`.
-- ALL keys MUST be enclosed in double quotes.
-- ALL string values MUST be enclosed in double quotes.
-- No trailing commas.
+import{a as e,c as t,d as n,f as r,g as i,h as a,i as o,m as s,n as c,o as l,p as u,r as d,s as f,t as p,u as m}from"../workflow-runner-oDhNA0sg.mjs";import{t as h}from"../date-BLOVFp3M.mjs";const g=m({summary:n().min(1,`Summary is required`),issues:f(m({severity:l([`error`,`warning`,`info`]),status:l([`new`,`persisting`]),description:n()})).default([]),resolvedIssues:f(m({description:n()})).default([]),approved:t().default(!1)}),_={id:`pr-review`,system:`You are a staff engineer reviewing a PR diff. Return ONLY valid JSON with this schema:
+{"summary":"string","issues":[{"severity":"error|warning|info","status":"new|persisting","description":"string"}],"resolvedIssues":[{"description":"string"}],"approved":boolean}
 
-Actual schema to follow:
-{
-  "summary": "string",
-  "issues": [
-    {
-      "severity": "error|warning|info",
-      "status": "new|persisting",
-      "description": "string"
-    }
-  ],
-  "resolvedIssues": [
-    {
-      "description": "string"
-    }
-  ],
-  "approved": boolean
-}
-
-Omit \`issues\` array entirely if there are no active findings.
-Omit \`resolvedIssues\` array entirely if nothing was resolved.
----
-# SUMMARY RULES
-- Describe what the code does and whether the implementation is sound.
-- Flag the dominant concern if issues exist.
-- If a previous review exists, mention whether this round mostly fixes, partially fixes, or does not address prior findings.
-- Never list files. No implementation detail unless it is the root cause of a finding.
----
-# ISSUE RULES
-Each issue must have a severity, a status, and a description.
-
-Severity levels:
-- \`error\` — must be fixed before merge: crashes, data loss, security vulnerabilities, broken contracts.
-- \`warning\` — should be addressed: logic gaps, edge cases, performance risks, poor maintainability.
-- \`info\` — optional improvement: naming, style, minor inefficiency with negligible impact.
-
-Status levels:
-- \`new\` — not present in the previous review.
-- \`persisting\` — already flagged in the previous review, still present in the current diff.
-
-Description rules:
-- One sentence. State the problem and its consequence.
-- Be specific: name the behavior, not the file or line.
-- No code snippets. No implementation suggestions.
-- Do not invent issues not evidenced by the diff.
----
-# RESOLVED ISSUES RULES
-- An issue is resolved if it appeared in the previous review but the new diff shows it has been addressed.
-- Copy the description verbatim from the previous review.
-- Do not reword or summarize — exact copy only.
----
-# APPROVAL RULES
-Set \`approved: true\` if and only if there are no \`error\`-severity issues in the current diff.
-Set \`approved: false\` if one or more \`error\`-severity issues exist.
-Never inherit the previous approval status — recompute from scratch.
----
-# ANALYSIS RULES
-You MUST check for:
-- Logic errors and incorrect edge case handling
-- Null/undefined access, missing error handling, or unsafe assumptions
-- Security vulnerabilities: injection, auth bypass, data exposure, unsafe deserialization
-- Performance: unnecessary allocations, blocking calls, unindexed queries, O(n²) patterns
-- Contract breakage: changed signatures, payload shapes, or behavioral guarantees
-
-You MUST NOT:
-- Flag formatting, linting, or generated code
-- Mention dependency bumps unless they introduce a behavioral or security risk
-- Hallucinate issues not evidenced by the diff
-- Repeat the same finding under different wording
-- Re-flag a resolved issue as persisting`,user:`Please review the following Pull Request:
+No code fences, no preamble, no trailing commas. Omit issues/resolvedIssues arrays if empty.
+- Summary: what the code does, soundness, dominant concern. No file lists.
+- Issues: one sentence per finding, name the behavior not the file. error=must-fix (crash, data loss, security), warning=should-fix (logic gaps, perf), info=optional.
+- Status: new=not in previous review, persisting=still present.
+- Resolved: copy verbatim from previous review.
+- Approved: true iff no error-severity issues. Recompute from scratch.
+- Check: logic errors, null access, security flaws, perf issues, contract breaks.
+- Never: flag formatting/lint, hallucinate issues, repeat findings.`,user:`Please review the following Pull Request:
 
 Title: {{pr_title}}
 Description: {{pr_body}}
