@@ -36,8 +36,8 @@ async function findAuditBaseline(gh: GitHubClient, owner: string, repo: string, 
     );
     if (auditPR) {
       Logger.log(`Found last audit PR #${auditPR.number}. Using its merge commit as baseline.`);
-      const prDetails = await gh.request<any>(`/repos/${owner}/${repo}/pulls/${auditPR.number}`);
-      return prDetails.merge_commit_sha;
+      const prDetails = await gh.getPRDetails(owner, repo, auditPR.number);
+      return prDetails.merge_commit_sha ?? '';
     }
   } catch (e) {
     Logger.warn(`Failed to search PR history: ${e instanceof Error ? e.message : String(e)}`);

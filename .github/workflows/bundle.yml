@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
       - uses: ./.github/composites/setup
       - run: pnpm install --frozen-lockfile
-      - run: pnpm bundle
+      - run: pnpm run bundle
       - name: Commit dist
         run: |
           git config user.name "github-actions[bot]"

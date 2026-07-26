@@ -18,6 +18,8 @@ export interface GitHubPR {
   head: { ref: string };
   created_at: string;
   updated_at: string;
+  merged_at?: string;
+  merge_commit_sha?: string;
   additions?: number;
   deletions?: number;
 }

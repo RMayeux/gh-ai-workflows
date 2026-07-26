@@ -6,7 +6,7 @@ inside GitHub Actions. External repos reference compiled bundles in dist/ direct
 
 ## Commands
 - Install: pnpm install
-- Bundle: pnpm run bundle
+- Bundle: pnpm run bundle (ncc per feature)
 - Test: pnpm test
 - Lint: pnpm lint
 - Type check: pnpm tsc --noEmit
@@ -57,8 +57,8 @@ Do not ask whether to run them. Always run them.
 
 ## Adding a feature
 1. Create features/<name>/ with index.ts, prompt.ts, schema.ts, action.yml.
-2. action.yml using path must be '../../dist/<name>/index.mjs'.
-3. Register nothing globally — tsdown picks up features/*/index.ts automatically.
+2. action.yml using path must be '../../dist/<name>/index.js'.
+3. Register nothing globally — add a matching build:* script in package.json.
 4. Run pnpm run bundle and verify dist/<name>/index.js was produced.
 
 ## Adding a provider

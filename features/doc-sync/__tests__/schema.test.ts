@@ -88,7 +88,7 @@ describe('DocSyncInputsSchema', () => {
     const result = DocSyncInputsSchema.safeParse(VALID_INPUTS);
     expect(result.success).toBe(true);
     if (result.success) {
-      expect(result.data.lookbackCommits).toBe(10);
+      expect(result.data.lookbackCommits).toBeUndefined();
     }
   });
 
