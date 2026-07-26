@@ -71,10 +71,10 @@ jobs:
         run: |
           {
             emoji() { [[ "$1" == "success" ]] && echo "✅" || echo "❌"; }
-            echo "$(emoji ${{ steps.tsc.outcome }}) type (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
-            echo "$(emoji ${{ steps.bundle.outcome }}) bundle (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
-            echo "$(emoji ${{ steps.test.outcome }}) tests (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
-            echo "$(emoji ${{ steps.lint.outcome }}) lint (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.tsc.outcome }}) TypeScript compilation clean (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
+            echo "$(emoji ${{ steps.bundle.outcome }}) All bundles built successfully (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.test.outcome }}) Test suite green (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.lint.outcome }}) Lint rules satisfied (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
           }
 
           PR="${{ github.event.pull_request.number }}"
