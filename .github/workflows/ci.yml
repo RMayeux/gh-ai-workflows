@@ -46,9 +46,10 @@ jobs:
         continue-on-error: true
         run: |
           START=$(date +%s)
-          pnpm test 2>&1 | tee /tmp/test_output.txt || true
-          SUMMARY=$(grep -E '^ +Tests' /tmp/test_output.txt | tail -1 | sed 's/^[[:space:]]*//' || echo '')
-          echo "result=${SUMMARY:-ran (no summary line)}" >> "$GITHUB_OUTPUT"
+          pnpm test > /tmp/test_output.txt 2>&1 || true
+          cat /tmp/test_output.txt
+          SUMMARY=$(grep -E '(Tests|tests) +[0-9]+' /tmp/test_output.txt | tail -1 | sed 's/^[[:space:]]*//' || echo '')
+          echo "result=${SUMMARY:-done}" >> "$GITHUB_OUTPUT"
           echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
       - name: Lint
@@ -68,27 +69,27 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo '## Verification' > /tmp/verification.md
-          echo '' >> /tmp/verification.md
-          echo '| Check | Result | Time |' >> /tmp/verification.md
-          echo '|:---|---:|---:|' >> /tmp/verification.md
-          echo "| Type check | ${{ steps.tsc.outputs.result }} | ${{ steps.tsc.outputs.elapsed }} |" >> /tmp/verification.md
-          echo "| Bundle | ${{ steps.bundle.outputs.result }} | ${{ steps.bundle.outputs.elapsed }} |" >> /tmp/verification.md
-          echo "| Test | ${{ steps.test.outputs.result }} | ${{ steps.test.outputs.elapsed }} |" >> /tmp/verification.md
-          echo "| Lint | ${{ steps.lint.outputs.result }} | ${{ steps.lint.outputs.elapsed }} |" >> /tmp/verification.md
+          echo '| Check | Result | Time |' > /tmp/vtable.md
+          echo '|:---|---:|---:|' >> /tmp/vtable.md
+          echo "| Type check | ${{ steps.tsc.outputs.result }} | ${{ steps.tsc.outputs.elapsed }} |" >> /tmp/vtable.md
+          echo "| Bundle | ${{ steps.bundle.outputs.result }} | ${{ steps.bundle.outputs.elapsed }} |" >> /tmp/vtable.md
+          echo "| Test | ${{ steps.test.outputs.result }} | ${{ steps.test.outputs.elapsed }} |" >> /tmp/vtable.md
+          echo "| Lint | ${{ steps.lint.outputs.result }} | ${{ steps.lint.outputs.elapsed }} |" >> /tmp/vtable.md
 
           PR="${{ github.event.pull_request.number }}"
           CURRENT_BODY=$(gh api "/repos/${{ github.repository }}/pulls/${PR}" --jq '.body')
 
           if echo "$CURRENT_BODY" | grep -q '## Verification'; then
-            NEW_BODY=$(printf '%s\n' "$CURRENT_BODY" | sed '/^## Verification/,/^## /{/^## Verification/!{/^## /!d;};}' | sed '$d')
-            printf '%s\n\n' "$NEW_BODY" > /tmp/pr_body
+            HEAD=$(printf '%s' "$CURRENT_BODY" | sed '/^## Verification/q' | sed '$d')
+            printf '%s\n\n' "$HEAD" > /tmp/pr_body
           else
             printf '%s\n\n' "$CURRENT_BODY" > /tmp/pr_body
+            echo '## Verification' >> /tmp/pr_body
+            echo '' >> /tmp/pr_body
           fi
-          cat /tmp/verification.md >> /tmp/pr_body
+          cat /tmp/vtable.md >> /tmp/pr_body
 
-          gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -F body@/tmp/pr_body
+          gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -f "body=@/tmp/pr_body"
 
           if [[ "${{ steps.tsc.outcome }}" != "success" || \
                 "${{ steps.bundle.outcome }}" != "success" || \
