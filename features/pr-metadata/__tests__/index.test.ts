@@ -66,11 +66,11 @@ const MOCK_METADATA = {
   title: 'feat(auth): add session rotation',
   summary: 'Add session rotation to auth module with token refresh',
   changes: [
-    'features/pr-metadata/schema.ts: Replace body with structured summary/changes/fixes',
-    'features/pr-metadata/prompt.ts: Rewrite system prompt with new schema rules',
+    'Schema: Replace flat body with structured summary/changes/fixes arrays, so each part renders independently. Breaking change for anything consuming the old format.',
+    'Prompt: Enforce subject-grouped bullets capped at 20 instead of per-file entries. Risk: model may misjudge significance and bury important files in group summaries.',
   ],
   fixes: [
-    'src/core/parser.ts: Correct off-by-one error in line count',
+    'Parser: Correct off-by-one error in line count that caused the last line of every file to be skipped during analysis.',
   ],
 };
 
@@ -202,11 +202,34 @@ describe('runPRMetadataWorkflow', () => {
     expect(body).toContain('- [x] Manual QA completed');
   });
 
+  it('Should flag unrelated changes with Unrelated: prefix', async () => {
+    const metadataWithUnrelated = {
+      title: 'feat(core): refactor pipeline',
+      summary: 'Refactor pipeline to support pluggable middleware',
+      changes: [
+        'Core: Extract middleware logic from monolithic pipeline into composable chain. Makes testing and extension easier.',
+        'Unrelated: Deleted .github/ISSUE_TEMPLATE/1-deepen-orchestration.md. Flagging in case it was not meant to ride along.',
+      ],
+    };
+
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(metadataWithUnrelated),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
+    });
+
+    await runPRMetadataWorkflow(MOCK_INPUTS);
+
+    const gh = new GitHubClient(MOCK_INPUTS.githubToken);
+    const [, , , , body] = vi.mocked(gh.updatePR).mock.calls[0];
+    expect(body).toContain('* Unrelated: Deleted .github/ISSUE_TEMPLATE/1-deepen-orchestration.md');
+  });
+
   it('Should omit Fixes section when metadata has no fixes', async () => {
     const metadataWithoutFixes = {
       title: 'fix: resolve crash',
       summary: 'Fix null pointer in login flow',
-      changes: ['src/login/auth.ts: Add null check'],
+      changes: ['Auth: Add null check before user lookup to prevent crash when user record is missing a profile. No risk — defensive check only.'],
     };
 
     vi.mocked(mockProvider.generate).mockResolvedValue({
@@ -221,7 +244,7 @@ describe('runPRMetadataWorkflow', () => {
     const [, , , , body] = vi.mocked(gh.updatePR).mock.calls[0];
     expect(body).not.toContain('## Fixes');
     expect(body).toContain('## Changes');
-    expect(body).toContain('* src/login/auth.ts: Add null check');
+    expect(body).toContain('* Auth: Add null check before user lookup to prevent crash when user record is missing a profile. No risk — defensive check only.');
   });
 
   it('LLM returns malformed JSON -> generateStructured retries -> succeeds on second attempt', async () => {
@@ -268,6 +291,39 @@ describe('runPRMetadataWorkflow', () => {
     const rejection = expect(workflowPromise).rejects.toThrow(/LLM generation failed: Format Error/);
     await vi.runAllTimersAsync();
     await rejection;
+  });
+
+  it('Should produce fewer body bullets than files when LLM subject-groups across 10 files', async () => {
+    const manyFiles = Array.from({ length: 10 }, (_, i) => `src/module${i}.ts`);
+    mockBuildPRContext.mockResolvedValue({
+      diff: 'diff',
+      files: manyFiles,
+      details: { title: 'PR', body: 'body', additions: 100, deletions: 50 },
+    });
+
+    const subjectGrouped = {
+      title: 'feat(core): refactor modules',
+      summary: 'Refactor modules into shared core',
+      changes: [
+        'Core: Merge duplicate validation logic into shared utility.',
+        'Config: Consolidate per-module config into single file.',
+        'Docs: Update READMEs to reference shared core.',
+      ],
+    };
+
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(subjectGrouped),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
+    });
+
+    await runPRMetadataWorkflow(MOCK_INPUTS);
+
+    const gh = new GitHubClient(MOCK_INPUTS.githubToken);
+    const [, , , , body] = vi.mocked(gh.updatePR).mock.calls[0];
+    const changesLines = body.split('\n').filter(l => l.startsWith('* '));
+    expect(changesLines.length).toBe(3);
+    expect(changesLines.length).toBeLessThan(manyFiles.length);
   });
 
   it('GitHub API call fails -> error is logged with masked secrets -> process exits with code 1', async () => {

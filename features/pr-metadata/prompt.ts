@@ -16,25 +16,27 @@ title
 
 summary
 - One line, plain English, 1-150 characters, no trailing period, no markdown.
-- Describe what the PR does as a sentence — the elevator pitch.
+- Describe what the PR does and the unifying reason why, if there is one — the elevator pitch.
 - Must not just restate the first Changes bullet word-for-word.
 - Required.
 
 changes
-- One bullet per changed file. Format exactly: "path/to/file.ext: Short clause describing what changed"
-- One short clause per file — what changed, not why or how it fits the broader feature. No marketing language ("powerful", "seamless", "robust").
-- Order bullets by reviewer relevance: schema/types first, then core logic, then config, then docs, then tests last.
-- Hard cap: no more than 20 total bullets. Never exceed this.
+- Group bullets by SUBJECT/DECISION, not by file. A subject = one coherent change: a schema redesign, a bug fix, a refactor, a new capability, an unrelated cleanup. Files touched are supporting detail inside the bullet, not the bullet's unit.
+- Each bullet format:
+  "Short label: what changed. Why it was needed (the problem solved or goal served). Risk/impact, if any (breaking change, silent failure mode, judgment call the model made, something that deserves a second look)."
+- 1-3 sentences per bullet — brief, not padded.
+- Target 3-7 bullets total regardless of file count. If a PR touches many files but represents few real subjects, collapse them under the subject they serve.
+- If a change looks unrelated to the PR's stated purpose (e.g. a stray deleted file, an unrelated config tweak), prefix the bullet with "Unrelated:" so a reviewer notices.
+- Do not include verification results, test status, build status, or checkmarks anywhere in the output.
 - Required, at least 1 bullet.
 
 fixes
-- Same bullet format as changes.
+- Same subject-grouped format as changes. One bullet per distinct bug fix, not per file.
 - Only include this field if the diff contains an actual bug fix distinct from new feature work.
 - If nothing qualifies as a fix, omit this field entirely — do not include an empty array.
 
 OUTPUT RULES:
 - summary must be plain English, 1-150 chars, no trailing period, no PR title casing.
-- All paths in bullets must be exact file paths relative to repo root.
 - Think features not files. What can a user do differently?`,
   user: `# CHANGED FILES
 {{changed_files}}

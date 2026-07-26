@@ -8,8 +8,9 @@ export const PRMetadataSchema = z.object({
     .min(1, 'Summary is required')
     .max(150, 'Summary must be under 150 characters'),
   changes: z.array(z.string())
-    .min(1, 'At least one change bullet is required'),
-  fixes: z.array(z.string()).optional(),
+    .min(1, 'At least one change bullet is required')
+    .max(20, 'Changes must have at most 20 bullets'),
+    fixes: z.array(z.string()).max(20).optional(),
 });
 
 export type PRMetadata = z.infer<typeof PRMetadataSchema>;
