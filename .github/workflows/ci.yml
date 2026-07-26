@@ -89,7 +89,7 @@ jobs:
           echo '' >> /tmp/pr_body
           cat /tmp/vtable.md >> /tmp/pr_body
 
-          gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -f "body=@/tmp/pr_body"
+          gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -f body="$(cat /tmp/pr_body)"
 
           if [[ "${{ steps.tsc.outcome }}" != "success" || \
                 "${{ steps.bundle.outcome }}" != "success" || \
