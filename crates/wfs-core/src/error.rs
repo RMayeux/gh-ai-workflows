@@ -22,6 +22,18 @@ impl LlmError {
     }
 }
 
+pub fn normalize_llm_error(msg: &str) -> LlmError {
+    if msg.contains("429") || msg.to_lowercase().contains("rate limit") {
+        LlmError::RateLimit(msg.to_string())
+    } else if msg.contains("401") || msg.contains("403") {
+        LlmError::Authentication(msg.to_string())
+    } else if msg.contains("400") || msg.contains("422") {
+        LlmError::InvalidRequest(msg.to_string())
+    } else {
+        LlmError::Provider(msg.to_string())
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum PipelineError {
     #[error("GitHub API error: {0}")]

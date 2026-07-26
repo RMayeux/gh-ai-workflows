@@ -64,68 +64,79 @@ pub fn clean_json(text: &str) -> String {
     trimmed.to_string()
 }
 
+fn backoff_delay(attempts: u32) -> std::time::Duration {
+    std::time::Duration::from_millis(1000 * 2u64.pow(attempts))
+}
+
+async fn attempt_generate<T: DeserializeOwned>(
+    provider: &dyn LlmProvider,
+    request: &GenerateRequest,
+    options: &StructuredGenerationOptions,
+    attempts: u32,
+) -> Result<(T, String), AttemptOutcome> {
+    let json_mode = options.json_mode && provider.capabilities().capabilities.contains(&ModelCapability::JsonMode);
+    let current_request = GenerateRequest { json_mode: Some(json_mode), ..request.clone() };
+
+    match provider.generate(&current_request).await {
+        Ok(response) => {
+            let cleaned = clean_json(&response.text);
+            match serde_json::from_str::<T>(&cleaned) {
+                Ok(data) => Ok((data, response.text)),
+                Err(e) => {
+                    if attempts <= options.max_retries {
+                        tokio::time::sleep(backoff_delay(attempts)).await;
+                        Err(AttemptOutcome::Retry)
+                    } else {
+                        Err(AttemptOutcome::Fail(format!("Format Error: {e}")))
+                    }
+                }
+            }
+        }
+        Err(e) => {
+            if e.is_retryable() && attempts <= options.max_retries {
+                tokio::time::sleep(backoff_delay(attempts)).await;
+                Err(AttemptOutcome::Retry)
+            } else {
+                Err(AttemptOutcome::Fail(e.to_string()))
+            }
+        }
+    }
+}
+
+enum AttemptOutcome {
+    Retry,
+    Fail(String),
+}
+
 pub async fn generate_structured<T: DeserializeOwned>(
     provider: &dyn LlmProvider,
     request: &GenerateRequest,
     options: StructuredGenerationOptions,
 ) -> StructuredGenerationResult<T> {
-    let max_retries = options.max_retries;
     let mut attempts = 0u32;
-    let mut last_raw_response = String::new();
+    let last_raw_response = String::new();
 
     loop {
         attempts += 1;
 
-        let json_mode = options.json_mode && provider.capabilities().capabilities.contains(&ModelCapability::JsonMode);
-
-        let current_request = GenerateRequest {
-            json_mode: Some(json_mode),
-            ..request.clone()
-        };
-
-        let result = provider.generate(&current_request).await;
-
-        match result {
-            Ok(response) => {
-                last_raw_response = response.text.clone();
-                let cleaned = clean_json(&response.text);
-
-                match serde_json::from_str::<T>(&cleaned) {
-                    Ok(data) => {
-                        return StructuredGenerationResult {
-                            success: true,
-                            data: Some(data),
-                            error: None,
-                            attempts,
-                            raw_response: last_raw_response,
-                        };
-                    }
-                    Err(e) => {
-                        if attempts <= max_retries {
-                            let delay = std::time::Duration::from_millis(1000 * 2u64.pow(attempts));
-                            tokio::time::sleep(delay).await;
-                            continue;
-                        }
-                        return StructuredGenerationResult {
-                            success: false,
-                            data: None,
-                            error: Some(format!("Format Error: {e}")),
-                            attempts,
-                            raw_response: last_raw_response,
-                        };
-                    }
-                }
+        match attempt_generate::<T>(provider, request, &options, attempts).await {
+            Ok((data, raw)) => {
+                return StructuredGenerationResult {
+                    success: true,
+                    data: Some(data),
+                    error: None,
+                    attempts,
+                    raw_response: raw,
+                };
             }
-            Err(e) => {
-                if e.is_retryable() && attempts <= max_retries {
-                    let delay = std::time::Duration::from_millis(1000 * 2u64.pow(attempts));
-                    tokio::time::sleep(delay).await;
-                    continue;
-                }
+            Err(AttemptOutcome::Retry) => {
+                continue;
+            }
+            Err(AttemptOutcome::Fail(error)) => {
                 return StructuredGenerationResult {
                     success: false,
                     data: None,
-                    error: Some(e.to_string()),
+                    error: Some(error),
                     attempts,
                     raw_response: last_raw_response,
                 };

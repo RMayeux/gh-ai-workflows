@@ -10,7 +10,9 @@ pub async fn sync_labels(
     remove: &[&str],
 ) -> Result<(), LlmError> {
     for label in remove {
-        let _ = gh.remove_label(owner, repo, pr_number, label).await;
+        if let Err(e) = gh.remove_label(owner, repo, pr_number, label).await {
+            eprintln!("Warning: failed to remove label '{label}': {e}");
+        }
     }
 
     if !add.is_empty() {

@@ -1,11 +1,20 @@
 use async_trait::async_trait;
-use reqwest::Client;
+use reqwest::{Client, Response};
 
 use crate::error::LlmError;
 use super::{Comment, GitHubClient, Label, PullRequest};
 
 fn u64_to_u32(val: u64) -> Option<u32> {
     val.try_into().ok()
+}
+
+async fn check_response(response: Response) -> Result<Response, LlmError> {
+    if !response.status().is_success() {
+        let status = response.status();
+        let text = response.text().await.unwrap_or_default();
+        return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
+    }
+    Ok(response)
 }
 
 pub struct OctocrabClient {
@@ -47,295 +56,153 @@ impl OctocrabClient {
     fn url(&self, path: &str) -> String {
         format!("https://api.github.com{path}")
     }
+
+    async fn get_json(&self, url: &str) -> Result<serde_json::Value, LlmError> {
+        let response = self.client.get(url).headers(self.headers()).send().await
+            .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
+        let response = check_response(response).await?;
+        response.json().await.map_err(|e| LlmError::Parse(format!("Failed to parse: {e}")))
+    }
+
+    async fn get_json_vec(&self, url: &str) -> Result<Vec<serde_json::Value>, LlmError> {
+        let response = self.client.get(url).headers(self.headers()).send().await
+            .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
+        let response = check_response(response).await?;
+        response.json().await.map_err(|e| LlmError::Parse(format!("Failed to parse: {e}")))
+    }
+}
+
+fn parse_pr(data: &serde_json::Value, fallback_number: u64) -> PullRequest {
+    PullRequest {
+        number: data["number"].as_u64().unwrap_or(fallback_number),
+        title: data["title"].as_str().unwrap_or("").to_string(),
+        body: data["body"].as_str().map(|s| s.to_string()),
+        state: data["state"].as_str().unwrap_or("").to_string(),
+        additions: data["additions"].as_u64().and_then(u64_to_u32),
+        deletions: data["deletions"].as_u64().and_then(u64_to_u32),
+    }
+}
+
+fn parse_comment(data: &serde_json::Value) -> Comment {
+    Comment {
+        id: data["id"].as_u64().unwrap_or(0),
+        body: data["body"].as_str().unwrap_or("").to_string(),
+        user_login: data["user"]["login"].as_str().unwrap_or("").to_string(),
+    }
+}
+
+fn parse_label(data: &serde_json::Value) -> Label {
+    Label {
+        name: data["name"].as_str().unwrap_or("").to_string(),
+        color: data["color"].as_str().map(|s| s.to_string()),
+        description: data["description"].as_str().map(|s| s.to_string()),
+    }
 }
 
 #[async_trait]
 impl GitHubClient for OctocrabClient {
     async fn get_pr_diff(&self, owner: &str, repo: &str, number: u64) -> Result<String, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/pulls/{number}"));
-        let response = self
-            .client
-            .get(&url)
+        let response = self.client.get(&url)
             .header(reqwest::header::AUTHORIZATION, format!("Bearer {}", self.token))
             .header(reqwest::header::ACCEPT, "application/vnd.github.diff")
             .send()
             .await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        response
-            .text()
-            .await
-            .map_err(|e| LlmError::Provider(format!("Failed to read diff: {e}")))
+        let response = check_response(response).await?;
+        response.text().await.map_err(|e| LlmError::Provider(format!("Failed to read diff: {e}")))
     }
 
     async fn get_pr_details(&self, owner: &str, repo: &str, number: u64) -> Result<PullRequest, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/pulls/{number}"));
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.headers())
-            .send()
-            .await
-            .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        let data: serde_json::Value = response
-            .json()
-            .await
-            .map_err(|e| LlmError::Parse(format!("Failed to parse PR: {e}")))?;
-
-        Ok(PullRequest {
-            number: data["number"].as_u64().unwrap_or(number),
-            title: data["title"].as_str().unwrap_or("").to_string(),
-            body: data["body"].as_str().map(|s| s.to_string()),
-            state: data["state"].as_str().unwrap_or("").to_string(),
-            additions: data["additions"].as_u64().and_then(u64_to_u32),
-            deletions: data["deletions"].as_u64().and_then(u64_to_u32),
-        })
+        let data = self.get_json(&url).await?;
+        Ok(parse_pr(&data, number))
     }
 
     async fn get_pr_files(&self, owner: &str, repo: &str, number: u64) -> Result<Vec<String>, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/pulls/{number}/files"));
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.headers())
-            .send()
-            .await
-            .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        let data: Vec<serde_json::Value> = response
-            .json()
-            .await
-            .map_err(|e| LlmError::Parse(format!("Failed to parse files: {e}")))?;
-
-        Ok(data
-            .iter()
+        let data = self.get_json_vec(&url).await?;
+        Ok(data.iter()
             .filter_map(|f| f["filename"].as_str())
-            .map(|s| s.to_string())
+            .map(String::from)
             .filter(|name| {
-                !name.starts_with("dist/")
-                    && !name.ends_with(".lock") && !name.ends_with(".LOCK")
-                    && name != "package-lock.json"
+                !name.starts_with("dist/") && !name.ends_with(".lock")
+                    && !name.ends_with(".LOCK") && name != "package-lock.json"
             })
             .collect())
     }
 
     async fn list_comments(&self, owner: &str, repo: &str, number: u64) -> Result<Vec<Comment>, LlmError> {
-        let url = self.url(&format!("/repos/{owner}/{repo}/issues/{number}/comments?per_page=100"));
-        let response = self
-            .client
-            .get(&url)
-            .headers(self.headers())
-            .send()
-            .await
-            .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
+        let mut all_comments = Vec::new();
+        let mut page = 1u32;
+        loop {
+            let url = self.url(&format!("/repos/{owner}/{repo}/issues/{number}/comments?per_page=100&page={page}"));
+            let data = self.get_json_vec(&url).await?;
+            if data.is_empty() { break; }
+            all_comments.extend(data.iter().map(parse_comment));
+            if data.len() < 100 { break; }
+            page += 1;
         }
-
-        let data: Vec<serde_json::Value> = response
-            .json()
-            .await
-            .map_err(|e| LlmError::Parse(format!("Failed to parse comments: {e}")))?;
-
-        Ok(data
-            .iter()
-            .map(|c| Comment {
-                id: c["id"].as_u64().unwrap_or(0),
-                body: c["body"].as_str().unwrap_or("").to_string(),
-                user_login: c["user"]["login"].as_str().unwrap_or("").to_string(),
-            })
-            .collect())
+        Ok(all_comments)
     }
 
     async fn post_comment(&self, owner: &str, repo: &str, number: u64, body: &str) -> Result<Comment, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/issues/{number}/comments"));
-        let response = self
-            .client
-            .post(&url)
-            .headers(self.headers())
-            .json(&serde_json::json!({"body": body}))
-            .send()
-            .await
+        let response = self.client.post(&url).headers(self.headers())
+            .json(&serde_json::json!({"body": body})).send().await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        let data: serde_json::Value = response
-            .json()
-            .await
+        let data: serde_json::Value = check_response(response).await?.json().await
             .map_err(|e| LlmError::Parse(format!("Failed to parse comment: {e}")))?;
-
-        Ok(Comment {
-            id: data["id"].as_u64().unwrap_or(0),
-            body: body.to_string(),
-            user_login: String::new(),
-        })
+        Ok(Comment { id: data["id"].as_u64().unwrap_or(0), body: body.to_string(), user_login: String::new() })
     }
 
     async fn update_comment(&self, owner: &str, repo: &str, comment_id: u64, body: &str) -> Result<Comment, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/issues/comments/{comment_id}"));
-        let response = self
-            .client
-            .patch(&url)
-            .headers(self.headers())
-            .json(&serde_json::json!({"body": body}))
-            .send()
-            .await
+        let response = self.client.patch(&url).headers(self.headers())
+            .json(&serde_json::json!({"body": body})).send().await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        Ok(Comment {
-            id: comment_id,
-            body: body.to_string(),
-            user_login: String::new(),
-        })
+        check_response(response).await?;
+        Ok(Comment { id: comment_id, body: body.to_string(), user_login: String::new() })
     }
 
     async fn delete_comment(&self, owner: &str, repo: &str, comment_id: u64) -> Result<(), LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/issues/comments/{comment_id}"));
-        let response = self
-            .client
-            .delete(&url)
-            .headers(self.headers())
-            .send()
-            .await
+        let response = self.client.delete(&url).headers(self.headers()).send().await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
+        check_response(response).await?;
         Ok(())
     }
 
     async fn add_labels(&self, owner: &str, repo: &str, number: u64, labels: &[&str]) -> Result<Vec<Label>, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/issues/{number}/labels"));
-        let response = self
-            .client
-            .post(&url)
-            .headers(self.headers())
-            .json(&serde_json::json!({"labels": labels}))
-            .send()
-            .await
+        let response = self.client.post(&url).headers(self.headers())
+            .json(&serde_json::json!({"labels": labels})).send().await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        let data: Vec<serde_json::Value> = response
-            .json()
-            .await
+        let data: Vec<serde_json::Value> = check_response(response).await?.json().await
             .map_err(|e| LlmError::Parse(format!("Failed to parse labels: {e}")))?;
-
-        Ok(data
-            .iter()
-            .map(|l| Label {
-                name: l["name"].as_str().unwrap_or("").to_string(),
-                color: l["color"].as_str().map(|s| s.to_string()),
-                description: l["description"].as_str().map(|s| s.to_string()),
-            })
-            .collect())
+        Ok(data.iter().map(parse_label).collect())
     }
 
     async fn remove_label(&self, owner: &str, repo: &str, number: u64, label: &str) -> Result<(), LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/issues/{number}/labels/{label}"));
-        let response = self
-            .client
-            .delete(&url)
-            .headers(self.headers())
-            .send()
-            .await
+        let response = self.client.delete(&url).headers(self.headers()).send().await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() && response.status().as_u16() != 404 {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
+        if response.status().as_u16() != 404 {
+            check_response(response).await?;
         }
-
         Ok(())
     }
 
-    async fn update_pr(
-        &self,
-        owner: &str,
-        repo: &str,
-        number: u64,
-        title: Option<&str>,
-        body: Option<&str>,
-    ) -> Result<PullRequest, LlmError> {
+    async fn update_pr(&self, owner: &str, repo: &str, number: u64, title: Option<&str>, body: Option<&str>) -> Result<PullRequest, LlmError> {
         let url = self.url(&format!("/repos/{owner}/{repo}/pulls/{number}"));
         let mut patch_body = serde_json::Map::new();
-        if let Some(t) = title {
-            patch_body.insert("title".to_string(), serde_json::json!(t));
-        }
-        if let Some(b) = body {
-            patch_body.insert("body".to_string(), serde_json::json!(b));
-        }
-
-        let response = self
-            .client
-            .patch(&url)
-            .headers(self.headers())
-            .json(&patch_body)
-            .send()
-            .await
+        if let Some(t) = title { patch_body.insert("title".to_string(), serde_json::json!(t)); }
+        if let Some(b) = body { patch_body.insert("body".to_string(), serde_json::json!(b)); }
+        let response = self.client.patch(&url).headers(self.headers())
+            .json(&patch_body).send().await
             .map_err(|e| LlmError::Provider(format!("GitHub API error: {e}")))?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let text = response.text().await.unwrap_or_default();
-            return Err(LlmError::Provider(format!("GitHub API error {status}: {text}")));
-        }
-
-        let data: serde_json::Value = response
-            .json()
-            .await
+        let data: serde_json::Value = check_response(response).await?.json().await
             .map_err(|e| LlmError::Parse(format!("Failed to parse PR: {e}")))?;
-
-        Ok(PullRequest {
-            number: data["number"].as_u64().unwrap_or(number),
-            title: data["title"].as_str().unwrap_or("").to_string(),
-            body: data["body"].as_str().map(|s| s.to_string()),
-            state: data["state"].as_str().unwrap_or("").to_string(),
-            additions: data["additions"].as_u64().and_then(u64_to_u32),
-            deletions: data["deletions"].as_u64().and_then(u64_to_u32),
-        })
+        Ok(parse_pr(&data, number))
     }
 }

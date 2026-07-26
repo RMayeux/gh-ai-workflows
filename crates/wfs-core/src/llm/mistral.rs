@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use reqwest::Client;
 use std::collections::HashSet;
 
-use crate::error::LlmError;
+use crate::error::{normalize_llm_error, LlmError};
 use crate::types::{FinishReason, GenerateRequest, GenerateResponse, ModelCapability, ProviderCapabilities, Usage};
 use super::LlmProvider;
 
@@ -73,12 +73,12 @@ impl LlmProvider for MistralProvider {
             .json(&body)
             .send()
             .await
-            .map_err(|e| normalize_error(&format!("Request failed: {e}")))?;
+            .map_err(|e| normalize_llm_error(&format!("Request failed: {e}")))?;
 
         let status = response.status();
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            return Err(normalize_error(&format!("{status}: {error_text}")));
+            return Err(normalize_llm_error(&format!("{status}: {error_text}")));
         }
 
         let data: serde_json::Value = response
@@ -110,16 +110,3 @@ impl LlmProvider for MistralProvider {
     }
 }
 
-fn normalize_error(msg: &str) -> LlmError {
-    if msg.contains("429") || msg.to_lowercase().contains("rate limit") {
-        LlmError::RateLimit(msg.to_string())
-    } else if msg.contains("401") || msg.contains("403") {
-        LlmError::Authentication(msg.to_string())
-    } else if msg.contains("400") {
-        LlmError::InvalidRequest(msg.to_string())
-    } else if msg.contains("timeout") || msg.to_lowercase().contains("timed out") {
-        LlmError::Timeout(msg.to_string())
-    } else {
-        LlmError::Provider(msg.to_string())
-    }
-}

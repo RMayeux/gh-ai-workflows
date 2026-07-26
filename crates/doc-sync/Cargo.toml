@@ -1,0 +1,16 @@
+[package]
+name = "doc-sync"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Doc Sync action binary"
+
+[lints]
+workspace = true
+
+[dependencies]
+wfs-core = { path = "../wfs-core" }
+tokio = { workspace = true, features = ["process"] }
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true

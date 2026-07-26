@@ -35,7 +35,6 @@ pub enum FinishReason {
     Stop,
     Length,
     ContentFilter,
-    Error,
     Unknown,
 }
 

@@ -5,13 +5,6 @@ pub struct PromptDefinition {
     pub id: String,
     pub system: String,
     pub user: String,
-    pub overrides: HashMap<String, PromptOverride>,
-}
-
-#[derive(Debug, Clone)]
-pub struct PromptOverride {
-    pub system: Option<String>,
-    pub user: Option<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -38,35 +31,9 @@ impl PromptEngine {
         val.map_or(false, |v| !v.is_empty() && v != "false" && v != "0")
     }
 
-    fn resolve_section_blocks(template: &str, variables: &HashMap<String, String>) -> String {
+    fn resolve_block(template: &str, variables: &HashMap<String, String>, prefix: &str, truthy: bool) -> String {
         let mut result = template.to_string();
-
-        // Resolve truthy blocks {{#key}}...{{/key}}
-        while let Some(start) = result.find("{{#") {
-            let rest = &result[start + 3..];
-            let key_end = rest.find("}}").unwrap_or(rest.len());
-            let key: String = rest[..key_end].chars().take_while(|c| c.is_alphanumeric()).collect();
-            let inner_start = start + 3 + key.len() + 2; // past {{#key}}
-            let close_tag = format!("{{{{/{key}}}}}");
-            if let Some(inner_end) = result[inner_start..].find(&close_tag) {
-                let inner = &result[inner_start..inner_start + inner_end];
-                let replacement = if Self::is_truthy(variables.get(&key)) {
-                    Self::resolve_section_blocks(inner, variables)
-                } else {
-                    String::new()
-                };
-                let full_tag_start = start;
-                let full_tag_end = inner_start + inner_end + close_tag.len();
-                let before = &result[..full_tag_start];
-                let after = &result[full_tag_end..];
-                result = format!("{before}{replacement}{after}");
-            } else {
-                break;
-            }
-        }
-
-        // Resolve falsy blocks {{^key}}...{{/key}}
-        while let Some(start) = result.find("{{^") {
+        while let Some(start) = result.find(prefix) {
             let rest = &result[start + 3..];
             let key_end = rest.find("}}").unwrap_or(rest.len());
             let key: String = rest[..key_end].chars().take_while(|c| c.is_alphanumeric()).collect();
@@ -74,22 +41,23 @@ impl PromptEngine {
             let close_tag = format!("{{{{/{key}}}}}");
             if let Some(inner_end) = result[inner_start..].find(&close_tag) {
                 let inner = &result[inner_start..inner_start + inner_end];
-                let replacement = if Self::is_truthy(variables.get(&key)) {
-                    String::new()
+                let show = Self::is_truthy(variables.get(&key));
+                let replacement = if show == truthy {
+                    Self::resolve_block(inner, variables, prefix, truthy)
                 } else {
-                    Self::resolve_section_blocks(inner, variables)
+                    String::new()
                 };
-                let full_tag_start = start;
-                let full_tag_end = inner_start + inner_end + close_tag.len();
-                let before = &result[..full_tag_start];
-                let after = &result[full_tag_end..];
-                result = format!("{before}{replacement}{after}");
+                result = format!("{}{}{}", &result[..start], replacement, &result[inner_start + inner_end + close_tag.len()..]);
             } else {
                 break;
             }
         }
-
         result
+    }
+
+    fn resolve_section_blocks(template: &str, variables: &HashMap<String, String>) -> String {
+        let result = Self::resolve_block(template, variables, "{{#", true);
+        Self::resolve_block(&result, variables, "{{^", false)
     }
 
     fn resolve_vars(template: &str, variables: &HashMap<String, String>) -> String {

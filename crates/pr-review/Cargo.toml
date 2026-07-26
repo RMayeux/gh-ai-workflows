@@ -1,0 +1,16 @@
+[package]
+name = "pr-review"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "PR Review action binary"
+
+[lints]
+workspace = true
+
+[dependencies]
+wfs-core = { path = "../wfs-core" }
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+schemars.workspace = true

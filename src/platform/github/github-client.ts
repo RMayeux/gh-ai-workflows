@@ -1,7 +1,5 @@
 import { GitHubFile, GitHubPR, GitHubComment, GitHubLabel, GitHubResponse } from './types';
 
-export const githubVersion = '0.0.0';
-
 export class GitHubClient {
   private readonly token: string;
   private readonly baseUrl = 'https://api.github.com';

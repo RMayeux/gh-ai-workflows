@@ -21,7 +21,9 @@ pub async fn upsert_bot_comment(
         bot_comments.sort_by_key(|c| std::cmp::Reverse(c.id));
         let most_recent = bot_comments.remove(0);
         for old in bot_comments {
-            let _ = gh.delete_comment(owner, repo, old.id).await;
+            if let Err(e) = gh.delete_comment(owner, repo, old.id).await {
+                eprintln!("Warning: failed to delete stale comment {}: {e}", old.id);
+            }
         }
         gh.update_comment(owner, repo, most_recent.id, body).await?;
     }

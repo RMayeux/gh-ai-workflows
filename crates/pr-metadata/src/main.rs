@@ -3,7 +3,7 @@ use wfs_core::github::labels::sync_labels;
 use wfs_core::github::octocrab::OctocrabClient;
 use wfs_core::github::GitHubClient;
 use wfs_core::llm::registry::ProviderRegistry;
-use wfs_core::pipeline::{run_pipeline, FeatureHandler, PullRequestDetails};
+use wfs_core::pipeline::{run_pipeline, FeatureHandler, PullRequestDetails, WorkflowConfig};
 use wfs_core::types::GenerateRequest;
 
 #[derive(serde::Deserialize, schemars::JsonSchema)]
@@ -18,6 +18,14 @@ struct PrMetadataOutput {
 }
 
 struct PrMetadataHandler;
+
+fn make_size_label(changed: u64) -> &'static str {
+    if changed < 50 { "size/XS" }
+    else if changed < 200 { "size/S" }
+    else if changed < 500 { "size/M" }
+    else if changed < 1000 { "size/L" }
+    else { "size/XL" }
+}
 
 impl FeatureHandler<PrMetadataOutput> for PrMetadataHandler {
     fn response_schema() -> serde_json::Value {
@@ -41,131 +49,66 @@ impl FeatureHandler<PrMetadataOutput> for PrMetadataHandler {
         GenerateRequest {
             prompt: format!(
                 "# CHANGED FILES\n{}\n\n# CODE DIFF\n{}",
-                details.files.join("\\n"),
-                diff
+                details.files.join("\\n"), diff
             ),
             system_prompt: Some(concat!(
                 "You are a staff engineer analyzing a PR diff. Return ONLY valid JSON with this schema:\n",
                 r#"{"title":"string (max 72 chars)","body":"string","change_type":"feat|fix|refactor|perf|docs|test|build|ci|chore"}"#,
                 "\n\nNo code fences, no preamble, no trailing commas.\n",
-                "- Title: conventional commit type(domain): description, under 72 chars. Pick the domain with highest business impact.\n",
-                "- Body: \"## What changed\" (one paragraph, feature-focused, no file lists). If behavioral features changed add \"## Impacted features\" table (Domain | Feature | Impact).\n",
+                "- Title: conventional commit type(domain): description, under 72 chars.\n",
+                "- Body: \"## What changed\" (one paragraph, feature-focused, no file lists).\n",
                 "- Change type: infer from diff intent.\n",
-                "- Think features not files. What can a user do differently?\n",
+                "- Think features not files.\n",
                 "- Never list files, routes, or dependency bumps. No hallucination."
             ).to_string()),
-            temperature: None,
-            max_tokens: None,
-            json_mode: Some(true),
-            stop_sequences: None,
+            temperature: None, max_tokens: None,
+            json_mode: Some(true), stop_sequences: None,
         }
     }
 
     fn handle_result(result: &PrMetadataOutput, details: &PullRequestDetails, gh: &dyn GitHubClient) -> Result<(), LlmError> {
-        let owner = std::env::var("GITHUB_REPOSITORY_OWNER").unwrap_or_default();
-        let repo = std::env::var("GITHUB_REPOSITORY_NAME").unwrap_or_default();
-        let pr_number: u64 = std::env::var("GITHUB_EVENT_PULL_REQUEST_NUMBER")
-            .unwrap_or_default()
-            .parse()
-            .map_err(|e| LlmError::InvalidRequest(format!("Invalid PR number: {e}")))?;
+        let cfg = WorkflowConfig::from_env()?;
+        let rt = tokio::runtime::Runtime::new()
+            .map_err(|e| LlmError::Provider(format!("Runtime error: {e}")))?;
 
-        let owner_c = owner.clone();
-        let repo_c = repo.clone();
-
-        let rt = tokio::runtime::Runtime::new().map_err(|e| LlmError::Provider(format!("Runtime error: {e}")))?;
-
-        rt.block_on(gh.update_pr(&owner_c, &repo_c, pr_number, Some(&result.title), Some(&result.body)))
+        rt.block_on(gh.update_pr(&cfg.owner, &cfg.repo, cfg.pr_number,
+            Some(&result.title), Some(&result.body)))
             .map_err(|e| LlmError::Provider(format!("Failed to update PR: {e}")))?;
 
-        let mut labels_to_add = vec![result.change_type.as_str()];
-        if result.breaking {
-            labels_to_add.push("breaking-change");
-        }
-        if result.doc_impact {
-            labels_to_add.push("doc-impact");
-        }
-
+        let mut labels = vec![result.change_type.as_str()];
+        if result.breaking { labels.push("breaking-change"); }
+        if result.doc_impact { labels.push("doc-impact"); }
         let changed = (details.additions + details.deletions) as u64;
-        let size_label = if changed < 50 {
-            "size/XS"
-        } else if changed < 200 {
-            "size/S"
-        } else if changed < 500 {
-            "size/M"
-        } else if changed < 1000 {
-            "size/L"
-        } else {
-            "size/XL"
-        };
-        labels_to_add.push(size_label);
+        labels.push(make_size_label(changed));
 
-        rt.block_on(sync_labels(gh, &owner, &repo, pr_number, &labels_to_add, &[]))
+        rt.block_on(sync_labels(gh, &cfg.owner, &cfg.repo, cfg.pr_number, &labels, &[]))
             .map_err(|e| LlmError::Provider(format!("Failed to sync labels: {e}")))?;
 
         Ok(())
     }
 }
 
+async fn run() -> Result<(), LlmError> {
+    let cfg = WorkflowConfig::from_env()?;
+    let gh = OctocrabClient::new(&cfg.github_token);
+    let provider = ProviderRegistry::create(&cfg.llm, &cfg.api_key, &cfg.model)?;
+    let result = run_pipeline::<PrMetadataOutput, PrMetadataHandler>(
+        &cfg.owner, &cfg.repo, cfg.pr_number, provider.as_ref(), &gh,
+    ).await?;
+    match result {
+        wfs_core::pipeline::PipelineOutcome::Success => Ok(()),
+        wfs_core::pipeline::PipelineOutcome::Failure(e) => {
+            Err(LlmError::Provider(format!("Pipeline failed: {e}")))
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() {
-    let required = [
-        "GITHUB_TOKEN", "LLM", "MODEL", "API_KEY",
-        "GITHUB_REPOSITORY_OWNER", "GITHUB_REPOSITORY_NAME",
-        "GITHUB_EVENT_PULL_REQUEST_NUMBER",
-    ];
-    let mut missing = Vec::new();
-    for var in &required {
-        if std::env::var(var).is_ok() {
-            continue;
-        }
-        missing.push(*var);
-    }
-    if !missing.is_empty() {
-        eprintln!("Missing required environment variables: {}", missing.join(", "));
-        std::process::exit(1);
-    }
-
-    let token = std::env::var("GITHUB_TOKEN").expect("already validated");
-    let llm = std::env::var("LLM").expect("already validated");
-    let model = std::env::var("MODEL").expect("already validated");
-    let api_key = std::env::var("API_KEY").expect("already validated");
-    let owner = std::env::var("GITHUB_REPOSITORY_OWNER").expect("already validated");
-    let repo = std::env::var("GITHUB_REPOSITORY_NAME").expect("already validated");
-    let pr_number: u64 = match std::env::var("GITHUB_EVENT_PULL_REQUEST_NUMBER")
-        .expect("already validated")
-        .parse()
-    {
-        Ok(n) => n,
-        Err(_) => 0,
-    };
-
-    let gh = OctocrabClient::new(&token);
-    let provider = ProviderRegistry::create(&llm, &api_key, &model).unwrap_or_else(|e| {
-        eprintln!("Failed to create provider: {e}");
-        std::process::exit(1);
-    });
-
-    let result = run_pipeline::<PrMetadataOutput, PrMetadataHandler>(
-        &owner,
-        &repo,
-        pr_number,
-        provider.as_ref(),
-        &gh,
-    )
-    .await;
-
-    match result {
-        Ok(outcome) => match outcome {
-            wfs_core::pipeline::PipelineOutcome::Success => {
-                std::process::exit(0);
-            }
-            wfs_core::pipeline::PipelineOutcome::Failure(e) => {
-                eprintln!("Pipeline failed: {e}");
-                std::process::exit(1);
-            }
-        },
+    match run().await {
+        Ok(_) => std::process::exit(0),
         Err(e) => {
-            eprintln!("Pipeline error: {e}");
+            eprintln!("{e}");
             std::process::exit(1);
         }
     }

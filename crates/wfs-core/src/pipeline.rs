@@ -4,12 +4,43 @@ use crate::llm::LlmProvider;
 use crate::structured_gen::{generate_structured, StructuredGenerationOptions, StructuredGenerationResult};
 use crate::types::GenerateRequest;
 
+pub struct WorkflowConfig {
+    pub github_token: String,
+    pub llm: String,
+    pub model: String,
+    pub api_key: String,
+    pub owner: String,
+    pub repo: String,
+    pub pr_number: u64,
+}
+
+impl WorkflowConfig {
+    pub fn from_env() -> Result<Self, LlmError> {
+        fn req(key: &str) -> Result<String, LlmError> {
+            std::env::var(key).map_err(|_| LlmError::InvalidRequest(format!("Missing {key}")))
+        }
+        let pr_number = req("GITHUB_EVENT_PULL_REQUEST_NUMBER")?
+            .parse()
+            .map_err(|e| LlmError::InvalidRequest(format!("Invalid PR number: {e}")))?;
+        Ok(Self {
+            github_token: req("GITHUB_TOKEN")?,
+            llm: req("LLM")?,
+            model: req("MODEL")?,
+            api_key: req("API_KEY")?,
+            owner: req("GITHUB_REPOSITORY_OWNER")?,
+            repo: req("GITHUB_REPOSITORY_NAME")?,
+            pr_number,
+        })
+    }
+}
+
 pub struct PullRequestDetails {
     pub title: String,
     pub body: String,
     pub files: Vec<String>,
     pub additions: u32,
     pub deletions: u32,
+    pub previous_comments: Vec<String>,
 }
 
 pub trait FeatureHandler<T>: Send + Sync
@@ -44,6 +75,7 @@ where
     let diff = gh.get_pr_diff(owner, repo, pr_number).await?;
     let details = gh.get_pr_details(owner, repo, pr_number).await?;
     let files = gh.get_pr_files(owner, repo, pr_number).await?;
+    let comments = gh.list_comments(owner, repo, pr_number).await?;
 
     let pr_details = PullRequestDetails {
         title: details.title,
@@ -51,6 +83,7 @@ where
         files,
         additions: details.additions.unwrap_or(0),
         deletions: details.deletions.unwrap_or(0),
+        previous_comments: comments.into_iter().map(|c| c.body).collect(),
     };
 
     let request = H::build_prompt(&diff, &pr_details);

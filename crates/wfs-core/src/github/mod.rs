@@ -25,14 +25,6 @@ pub struct Comment {
 }
 
 #[derive(Debug, Clone)]
-pub struct FileDiff {
-    pub filename: String,
-    pub status: String,
-    pub additions: u32,
-    pub deletions: u32,
-}
-
-#[derive(Debug, Clone)]
 pub struct Label {
     pub name: String,
     pub color: Option<String>,
