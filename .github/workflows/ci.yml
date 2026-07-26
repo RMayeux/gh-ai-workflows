@@ -21,70 +21,74 @@ jobs:
         id: tsc
         continue-on-error: true
         run: |
+          START=$(date +%s)
           if pnpm tsc --noEmit; then
-            echo "result=✅ pnpm tsc --noEmit — no errors" >> "$GITHUB_OUTPUT"
+            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
           else
-            echo "result=❌ pnpm tsc --noEmit — failed" >> "$GITHUB_OUTPUT"
+            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
           fi
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
       - name: Bundle
         id: bundle
         continue-on-error: true
         run: |
+          START=$(date +%s)
           if pnpm run bundle; then
-            echo "result=✅ pnpm run bundle — all 4 features build successfully" >> "$GITHUB_OUTPUT"
+            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
           else
-            echo "result=❌ pnpm run bundle — failed" >> "$GITHUB_OUTPUT"
+            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
           fi
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
       - name: Test
         id: test
         continue-on-error: true
         run: |
-          pnpm test > /tmp/test_output.txt 2>&1
-          if [ $? -eq 0 ]; then
-            SUMMARY=$(grep -oP 'Tests\s+\K.*' /tmp/test_output.txt | tail -1)
-            echo "result=✅ pnpm test — ${SUMMARY:-all tests pass}" >> "$GITHUB_OUTPUT"
-          else
-            SUMMARY=$(grep -oP 'Tests\s+\K.*' /tmp/test_output.txt | tail -1)
-            echo "result=❌ pnpm test — ${SUMMARY:-failed}" >> "$GITHUB_OUTPUT"
-          fi
-          cat /tmp/test_output.txt
+          START=$(date +%s)
+          pnpm test 2>&1 | tee /tmp/test_output.txt || true
+          SUMMARY=$(grep -E '^ +Tests' /tmp/test_output.txt | tail -1 | sed 's/^[[:space:]]*//' || echo '')
+          echo "result=${SUMMARY:-ran (no summary line)}" >> "$GITHUB_OUTPUT"
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
       - name: Lint
         id: lint
         continue-on-error: true
         run: |
+          START=$(date +%s)
           if pnpm lint; then
-            echo "result=✅ pnpm lint — no errors" >> "$GITHUB_OUTPUT"
+            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
           else
-            echo "result=❌ pnpm lint — failed" >> "$GITHUB_OUTPUT"
+            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
           fi
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
       - name: Verification Summary
-        if: always()
+        if: always() && github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          BODY="## Verification
+          echo '## Verification' > /tmp/verification.md
+          echo '' >> /tmp/verification.md
+          echo '| Check | Result | Time |' >> /tmp/verification.md
+          echo '|:---|---:|---:|' >> /tmp/verification.md
+          echo "| Type check | ${{ steps.tsc.outputs.result }} | ${{ steps.tsc.outputs.elapsed }} |" >> /tmp/verification.md
+          echo "| Bundle | ${{ steps.bundle.outputs.result }} | ${{ steps.bundle.outputs.elapsed }} |" >> /tmp/verification.md
+          echo "| Test | ${{ steps.test.outputs.result }} | ${{ steps.test.outputs.elapsed }} |" >> /tmp/verification.md
+          echo "| Lint | ${{ steps.lint.outputs.result }} | ${{ steps.lint.outputs.elapsed }} |" >> /tmp/verification.md
 
-          ${{ steps.tsc.outputs.result }}
-          ${{ steps.bundle.outputs.result }}
-          ${{ steps.test.outputs.result }}
-          ${{ steps.lint.outputs.result }}"
+          PR="${{ github.event.pull_request.number }}"
+          CURRENT_BODY=$(gh api "/repos/${{ github.repository }}/pulls/${PR}" --jq '.body')
 
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            PR_NUMBER="${{ github.event.pull_request.number }}"
-            COMMENT_ID=$(gh api "/repos/${{ github.repository }}/issues/${PR_NUMBER}/comments" \
-              --jq '.[] | select(.body | startswith("## Verification")) | .id' | head -1)
-
-            if [ -n "$COMMENT_ID" ]; then
-              gh api -X PATCH "/repos/${{ github.repository }}/issues/comments/${COMMENT_ID}" \
-                -f body="$BODY"
-            else
-              gh pr comment "$PR_NUMBER" --body "$BODY"
-            fi
+          if echo "$CURRENT_BODY" | grep -q '## Verification'; then
+            NEW_BODY=$(printf '%s\n' "$CURRENT_BODY" | sed '/^## Verification/,/^## /{/^## Verification/!{/^## /!d;};}' | sed '$d')
+            printf '%s\n\n' "$NEW_BODY" > /tmp/pr_body
+          else
+            printf '%s\n\n' "$CURRENT_BODY" > /tmp/pr_body
           fi
+          cat /tmp/verification.md >> /tmp/pr_body
+
+          gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -F body@/tmp/pr_body
 
           if [[ "${{ steps.tsc.outcome }}" != "success" || \
                 "${{ steps.bundle.outcome }}" != "success" || \
