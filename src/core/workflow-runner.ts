@@ -1,6 +1,6 @@
-export type Exiter = {
+export interface Exiter {
   exit: (code: number) => never;
-};
+}
 
 export interface RunnerInputs {
   githubToken: string;
