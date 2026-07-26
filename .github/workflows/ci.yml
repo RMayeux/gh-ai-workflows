@@ -68,10 +68,10 @@ jobs:
         run: |
           BODY="## Verification
 
-    ${{ steps.tsc.outputs.result }}
-    ${{ steps.bundle.outputs.result }}
-    ${{ steps.test.outputs.result }}
-    ${{ steps.lint.outputs.result }}"
+          ${{ steps.tsc.outputs.result }}
+          ${{ steps.bundle.outputs.result }}
+          ${{ steps.test.outputs.result }}
+          ${{ steps.lint.outputs.result }}"
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             PR_NUMBER="${{ github.event.pull_request.number }}"
