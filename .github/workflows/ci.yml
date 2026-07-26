@@ -69,12 +69,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          echo '| Check | Result | Time |' > /tmp/vtable.md
-          echo '|:---|---:|---:|' >> /tmp/vtable.md
-          echo "| Type check | ${{ steps.tsc.outputs.result }} | ${{ steps.tsc.outputs.elapsed }} |" >> /tmp/vtable.md
-          echo "| Bundle | ${{ steps.bundle.outputs.result }} | ${{ steps.bundle.outputs.elapsed }} |" >> /tmp/vtable.md
-          echo "| Test | ${{ steps.test.outputs.result }} | ${{ steps.test.outputs.elapsed }} |" >> /tmp/vtable.md
-          echo "| Lint | ${{ steps.lint.outputs.result }} | ${{ steps.lint.outputs.elapsed }} |" >> /tmp/vtable.md
+          {
+            emoji() { [[ "$1" == "success" ]] && echo "✅" || echo "❌"; }
+            echo "$(emoji ${{ steps.tsc.outcome }}) type (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
+            echo "$(emoji ${{ steps.bundle.outcome }}) bundle (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.test.outcome }}) tests (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.lint.outcome }}) lint (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
+          }
 
           PR="${{ github.event.pull_request.number }}"
           CURRENT_BODY=$(gh api "/repos/${{ github.repository }}/pulls/${PR}" --jq '.body')
