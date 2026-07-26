@@ -1,6 +1,6 @@
 # PR Metadata
 
-Generates AI-driven PR titles, bodies, and labels based on changes.
+Generates AI-driven PR titles and structured bodies based on changes.
 
 ## Inputs
 
@@ -16,14 +16,8 @@ Generates AI-driven PR titles, bodies, and labels based on changes.
 ## Outputs
 
 | Name | Type | When it is empty |
-| :--- | :--- | :--- |
-| `title` | string | Generation fails |
+| :--- | :---: | :--- |
 | `summary` | string | Generation fails |
-| `body` | string | Generation fails |
-| `change_type` | string | Generation fails |
-| `breaking` | boolean | Generation fails |
-| `doc_impact` | boolean | Generation fails |
-| `doc_slugs` | string[] | Generation fails |
 
 ## Example usage
 

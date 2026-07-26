@@ -7,12 +7,9 @@ export const PRMetadataSchema = z.object({
   summary: z.string()
     .min(1, 'Summary is required')
     .max(150, 'Summary must be under 150 characters'),
-  body: z.string()
-    .min(1, 'Body is required'),
-  change_type: z.enum(['feat', 'fix', 'refactor', 'perf', 'docs', 'test', 'build', 'ci', 'chore']),
-  breaking: z.boolean().default(false),
-  doc_impact: z.boolean().default(false),
-  doc_slugs: z.array(z.string()).default([]),
+  changes: z.array(z.string())
+    .min(1, 'At least one change bullet is required'),
+  fixes: z.array(z.string()).optional(),
 });
 
 export type PRMetadata = z.infer<typeof PRMetadataSchema>;
