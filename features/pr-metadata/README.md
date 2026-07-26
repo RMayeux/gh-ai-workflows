@@ -18,6 +18,7 @@ Generates AI-driven PR titles, bodies, and labels based on changes.
 | Name | Type | When it is empty |
 | :--- | :--- | :--- |
 | `title` | string | Generation fails |
+| `summary` | string | Generation fails |
 | `body` | string | Generation fails |
 | `change_type` | string | Generation fails |
 | `breaking` | boolean | Generation fails |

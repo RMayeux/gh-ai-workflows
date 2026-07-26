@@ -3,7 +3,8 @@ import { PRMetadataSchema } from '../schema';
 
 const VALID_METADATA = {
   title: 'feat: implement user authentication',
-  body: 'This PR adds JWT authentication for the API.',
+  summary: 'Add JWT authentication to the API with refresh token rotation',
+  body: 'Changes\n- src/auth: add JWT token generation and validation\n\nVerification\n- ✅ all auth tests pass',
   change_type: 'feat',
   breaking: false,
   doc_impact: true,
@@ -12,7 +13,8 @@ const VALID_METADATA = {
 
 const VALID_MINIMAL_METADATA = {
   title: 'fix: resolve crash on login',
-  body: 'Fixed a null pointer exception in login flow.',
+  summary: 'Fix null pointer exception in login flow',
+  body: 'Fixes\n- src/login: null check before user lookup\n\nVerification\n- ✅ login flow tested',
   change_type: 'fix',
 };
 
@@ -39,7 +41,7 @@ describe('PRMetadataSchema', () => {
   });
 
   it('should fail if title is missing', () => {
-    const invalid = { body: '...', change_type: 'feat' };
+    const invalid = { summary: '...', body: '...', change_type: 'feat' };
     const result = PRMetadataSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -51,6 +53,7 @@ describe('PRMetadataSchema', () => {
   it('should fail if title exceeds 72 characters', () => {
     const invalid = {
       title: 'a'.repeat(73),
+      summary: 'valid summary',
       body: '...',
       change_type: 'feat',
     };
@@ -62,8 +65,37 @@ describe('PRMetadataSchema', () => {
     }
   });
 
+  it('should fail if summary exceeds 150 characters', () => {
+    const invalid = {
+      title: 'valid title',
+      summary: 'a'.repeat(151),
+      body: '...',
+      change_type: 'feat',
+    };
+    const result = PRMetadataSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const error = result.error.issues.find(i => i.path.includes('summary'));
+      expect(error).toBeDefined();
+    }
+  });
+
+  it('should fail if summary is missing', () => {
+    const invalid = {
+      title: 'valid title',
+      body: '...',
+      change_type: 'feat',
+    };
+    const result = PRMetadataSchema.safeParse(invalid);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      const error = result.error.issues.find(i => i.path.includes('summary'));
+      expect(error).toBeDefined();
+    }
+  });
+
   it('should fail if body is missing', () => {
-    const invalid = { title: '...', change_type: 'feat' };
+    const invalid = { title: '...', summary: '...', change_type: 'feat' };
     const result = PRMetadataSchema.safeParse(invalid);
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -75,6 +107,7 @@ describe('PRMetadataSchema', () => {
   it('should fail if change_type is not in the enum', () => {
     const invalid = {
       title: '...',
+      summary: '...',
       body: '...',
       change_type: 'invalid-type',
     };
@@ -89,6 +122,7 @@ describe('PRMetadataSchema', () => {
   it('should fail if breaking is not a boolean', () => {
     const invalid = {
       title: '...',
+      summary: '...',
       body: '...',
       change_type: 'feat',
       breaking: 'yes',
@@ -104,6 +138,7 @@ describe('PRMetadataSchema', () => {
   it('should fail if doc_slugs is not an array of strings', () => {
     const invalid = {
       title: '...',
+      summary: '...',
       body: '...',
       change_type: 'feat',
       doc_slugs: [123],

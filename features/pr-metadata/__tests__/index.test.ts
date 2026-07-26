@@ -1,10 +1,15 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { appendFileSync } from 'node:fs';
 import { runPRMetadataWorkflow } from '../index';
 import { GitHubClient, ContextBuilder } from '@platform/github';
 import { syncLabels } from '@platform/github/labels';
 import { ProviderRegistry } from '@core/registry';
 import { Logger } from '@core/telemetry';
 import type { LLMProvider } from '@platform/llm/types';
+
+vi.mock('node:fs', () => ({
+  appendFileSync: vi.fn(),
+}));
 
 vi.mock('@platform/github', () => {
   const mockGhInstance = {
@@ -72,7 +77,8 @@ const MOCK_INPUTS = {
 
 const MOCK_METADATA = {
   title: 'feat(auth): add session rotation',
-  body: '## What changed\nImplemented session rotation.',
+  summary: 'Add session rotation to auth module with token refresh',
+  body: 'Changes\n- src/auth: implement session rotation\n\nVerification\n- ✅ unit tests pass',
   change_type: 'feat',
   breaking: false,
   doc_impact: true,
@@ -125,7 +131,7 @@ describe('runPRMetadataWorkflow', () => {
       MOCK_INPUTS.repo,
       MOCK_INPUTS.pullNumber,
       MOCK_METADATA.title,
-      MOCK_METADATA.body
+      `${MOCK_METADATA.summary}\n\n${MOCK_METADATA.body}`
     );
     
     expect(syncLabels).toHaveBeenCalledWith(
@@ -135,6 +141,31 @@ describe('runPRMetadataWorkflow', () => {
       MOCK_INPUTS.pullNumber,
       { add: ['feat', 'doc-impact', 'size/S'] }
     );
+  });
+
+  it('Happy path -> summary written to GITHUB_OUTPUT env file', async () => {
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(MOCK_METADATA),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
+    });
+    vi.stubEnv('GITHUB_OUTPUT', '/tmp/test-output');
+
+    await runPRMetadataWorkflow(MOCK_INPUTS);
+
+    expect(appendFileSync).toHaveBeenCalledWith('/tmp/test-output', `summary=${MOCK_METADATA.summary}\n`);
+  });
+
+  it('Happy path -> no GITHUB_OUTPUT env -> skip output write silently', async () => {
+    vi.mocked(mockProvider.generate).mockResolvedValue({
+      text: JSON.stringify(MOCK_METADATA),
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+      finishReason: 'stop',
+    });
+
+    await runPRMetadataWorkflow(MOCK_INPUTS);
+
+    expect(appendFileSync).not.toHaveBeenCalled();
   });
 
   it('LLM returns malformed JSON -> generateStructured retries -> succeeds on second attempt', async () => {
