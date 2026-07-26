@@ -13,6 +13,7 @@ export interface RunnerInputs {
   maxTokens?: number;
   lookbackCommits?: number;
   projectContext?: string;
+  docPattern?: string;
   debug?: boolean;
   [key: string]: unknown;
 }

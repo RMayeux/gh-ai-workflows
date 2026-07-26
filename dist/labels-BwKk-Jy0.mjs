@@ -1,1 +1,0 @@
-async function e(e,t,n,r,{add:i=[],remove:a=[]}){if(a.length>0)for(let i of a)await e.removeLabel(t,n,r,i).catch(()=>{});i.length>0&&await e.addLabels(t,n,r,i)}export{e as t};

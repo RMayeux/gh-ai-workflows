@@ -30,9 +30,9 @@ export const DocSyncInputsSchema = z.object({
     .number()
     .int()
     .positive()
-    .default(10)
+    .optional()
     .describe('Number of commits to look back if no audit PR is found'),
-  docPattern: z.string().describe('Regex to find documentation files in the repository'),
+  docPattern: z.string().optional().describe('Regex to find documentation files in the repository'),
   debug: z.boolean().optional(),
   summaryLlm: z.string().optional(),
   summaryModel: z.string().optional(),
