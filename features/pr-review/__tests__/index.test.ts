@@ -3,7 +3,7 @@ import { runPRReviewWorkflow } from '../index';
 import { GitHubClient, ContextBuilder, upsertBotComment, syncLabels } from '@platform/github';
 import { ProviderRegistry } from '@core/registry';
 import { Logger } from '@core/telemetry';
-import { LLMProvider } from '@core/types/llm';
+import type { LLMProvider } from '@platform/llm/types';
 
 vi.mock('@platform/github', () => {
   const mockGhInstance = {

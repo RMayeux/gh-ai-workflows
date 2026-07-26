@@ -1,4 +1,4 @@
-import { GitHubClient } from './index';
+import { GitHubClient } from './github-client';
 
 export async function syncLabels(
   gh: GitHubClient,

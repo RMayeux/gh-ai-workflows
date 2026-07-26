@@ -1,6 +1,6 @@
 import { GitHubClient, ContextBuilder } from '@platform/github';
 import type { GitHubContext } from '@platform/github';
-import { registerAllProviders } from '@platform/llm';
+import { registerAllProviders } from '@platform/llm/register';
 import { ProviderRegistry } from '@core/registry';
 import { Logger } from '@core/telemetry';
 import { summarizeDiff } from '@core/diff-summarizer';

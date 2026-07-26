@@ -1,4 +1,4 @@
-import { GitHubClient } from './index';
+import { GitHubClient } from './github-client';
 import { Logger } from '../../core/telemetry';
 
 export async function upsertBotComment(
