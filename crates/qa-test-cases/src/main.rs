@@ -1,4 +1,5 @@
 use wfs_core::error::LlmError;
+use wfs_core::fs_utils::read_matching_files;
 use wfs_core::github::comments::upsert_bot_comment;
 use wfs_core::github::octocrab::OctocrabClient;
 use wfs_core::github::GitHubClient;
@@ -145,30 +146,6 @@ impl FeatureHandler<QATestCasesOutput> for QATestCasesHandler {
 
         Ok(())
     }
-}
-
-/// ponytail: simple glob-free doc reader, reads files matching a pattern from cwd
-fn read_matching_files(pattern: &str) -> String {
-    let Ok(entries) = std::fs::read_dir(".") else { return String::new() };
-    let mut result = String::new();
-    for entry in entries.flatten() {
-        let path = entry.path();
-        if path.is_file() {
-            if let Some(name) = path.to_str() {
-                if path.extension().map_or(false, |e| e == "md") {
-                    // ponytail: simple name contains check instead of full regex
-                    if name.contains(pattern.trim_matches('.'))
-                        || pattern == ".*\\.md"
-                    {
-                        if let Ok(content) = std::fs::read_to_string(&path) {
-                            result.push_str(&format!("\n--- {} ---\n{content}\n", name));
-                        }
-                    }
-                }
-            }
-        }
-    }
-    result
 }
 
 async fn run() -> Result<(), LlmError> {

@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use wfs_core::error::LlmError;
+use wfs_core::fs_utils::read_matching_files;
 use wfs_core::github::comments::upsert_bot_comment;
 use wfs_core::github::octocrab::OctocrabClient;
 use wfs_core::github::GitHubClient;
@@ -133,30 +134,6 @@ impl FeatureHandler<DocSyncOutput> for DocSyncHandler {
 
         Ok(())
     }
-}
-
-/// ponytail: simple glob-free doc reader
-fn read_matching_files(pattern: &str) -> String {
-    use std::fs;
-    let read_dir = match fs::read_dir(".") {
-        Ok(d) => d,
-        Err(_) => return String::new(),
-    };
-    let mut result = String::new();
-    for entry in read_dir.flatten() {
-        let path = entry.path();
-        if !path.is_file() { continue; }
-        if path.extension().map_or(false, |e| e == "md") {
-            if let Some(name) = path.to_str() {
-                if pattern == r".*\.md" || name.contains(pattern.trim_matches('.')) {
-                    if let Ok(content) = fs::read_to_string(&path) {
-                        result.push_str(&format!("\n--- {} ---\n{content}\n", name));
-                    }
-                }
-            }
-        }
-    }
-    result
 }
 
 async fn run() -> Result<(), LlmError> {

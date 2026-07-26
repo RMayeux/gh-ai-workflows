@@ -88,7 +88,7 @@ impl FeatureHandler<PrReviewOutput> for PrReviewHandler {
                  review, and a final decision on whether the PR is approved.",
                 title = details.title,
                 body = details.body,
-                files = details.files.join("\\n"),
+                files = details.files.join("\n"),
                 diff = diff
             ),
             system_prompt: Some(concat!(

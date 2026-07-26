@@ -1,4 +1,5 @@
 pub mod error;
+pub mod fs_utils;
 pub mod github;
 pub mod llm;
 pub mod pipeline;
