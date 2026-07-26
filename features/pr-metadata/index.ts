@@ -13,7 +13,8 @@ export type PRMetadataWorkflowInputs = PipelineInputs;
 
 const VERIFICATION_HEADING = '## Verification';
 
-function extractVerificationSection(existingBody: string): string {
+function extractVerificationSection(existingBody: string | null): string {
+  if (!existingBody) return '';
   const idx = existingBody.indexOf(VERIFICATION_HEADING);
   if (idx === -1) return '';
   return existingBody.slice(idx);
