@@ -1,6 +1,6 @@
 # PR Metadata
 
-Generates AI-driven PR titles, bodies, and labels based on changes.
+Generates AI-driven PR titles and structured bodies based on changes.
 
 ## Inputs
 
@@ -16,13 +16,12 @@ Generates AI-driven PR titles, bodies, and labels based on changes.
 ## Outputs
 
 | Name | Type | When it is empty |
-| :--- | :--- | :--- |
-| `title` | string | Generation fails |
-| `body` | string | Generation fails |
-| `change_type` | string | Generation fails |
-| `breaking` | boolean | Generation fails |
-| `doc_impact` | boolean | Generation fails |
-| `doc_slugs` | string[] | Generation fails |
+| :--- | :---: | :--- |
+| `summary` | string | Generation fails |
+
+## Body format
+
+The generated PR body contains a **Changes** section with subject-grouped bullets. Each bullet describes one coherent change (schema redesign, bug fix, refactor, etc.) with its justification and risk — files touched are supporting detail, not the grouping unit. Target: 3–7 bullets regardless of file count. Changes unrelated to the PR's stated purpose are prefixed with `Unrelated:`. If bug fixes are present, a separate **Fixes** section follows the same format. An existing `## Verification` section in the PR body is copied through verbatim.
 
 ## Example usage
 

@@ -27,6 +27,9 @@ inputs:
   summary-model:
     description: 'Model for diff summarization (required if summary-llm is set)'
     required: false
+outputs:
+  summary:
+    description: 'One-line summary of the PR changes'
 runs:
   using: 'composite'
   steps:

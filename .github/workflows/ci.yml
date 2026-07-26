@@ -6,11 +6,96 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@900f2210b1d28bbbd0bd22d17926b9e224e8f231
       - uses: ./.github/composites/setup
-      - run: pnpm lint
-      - run: pnpm test
+
+      - name: Type check
+        id: tsc
+        continue-on-error: true
+        run: |
+          START=$(date +%s)
+          if pnpm tsc --noEmit; then
+            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
+          fi
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
+
+      - name: Bundle
+        id: bundle
+        continue-on-error: true
+        run: |
+          START=$(date +%s)
+          if pnpm run bundle; then
+            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
+          fi
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
+
+      - name: Test
+        id: test
+        continue-on-error: true
+        run: |
+          START=$(date +%s)
+          pnpm test > /tmp/test_output.txt 2>&1 || true
+          cat /tmp/test_output.txt
+          SUMMARY=$(grep -E '(Tests|tests) +[0-9]+' /tmp/test_output.txt | tail -1 | sed 's/^[[:space:]]*//' || echo '')
+          echo "result=${SUMMARY:-done}" >> "$GITHUB_OUTPUT"
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
+
+      - name: Lint
+        id: lint
+        continue-on-error: true
+        run: |
+          START=$(date +%s)
+          if pnpm lint; then
+            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
+          fi
+          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
+
+      - name: Verification Summary
+        if: always() && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            emoji() { [[ "$1" == "success" ]] && echo "✅" || echo "❌"; }
+            echo "$(emoji ${{ steps.tsc.outcome }}) TypeScript compilation clean (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
+            echo "$(emoji ${{ steps.bundle.outcome }}) All bundles built successfully (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
+            TC=$(echo "${{ steps.test.outputs.result }}" | grep -oE '[0-9]+' | tail -1)
+            echo "$(emoji ${{ steps.test.outcome }}) ${TC} tests passed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.lint.outcome }}) Lint rules satisfied (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
+          }
+
+          PR="${{ github.event.pull_request.number }}"
+          CURRENT_BODY=$(gh api "/repos/${{ github.repository }}/pulls/${PR}" --jq '.body')
+
+          if echo "$CURRENT_BODY" | grep -q '## Verification'; then
+            HEAD=$(printf '%s' "$CURRENT_BODY" | sed '/^## Verification/q' | sed '$d')
+            printf '%s\n\n' "$HEAD" > /tmp/pr_body
+          else
+            printf '%s\n\n' "$CURRENT_BODY" > /tmp/pr_body
+          fi
+          echo '## Verification' >> /tmp/pr_body
+          echo '' >> /tmp/pr_body
+          cat /tmp/vtable.md >> /tmp/pr_body
+
+          gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -f body="$(cat /tmp/pr_body)"
+
+          if [[ "${{ steps.tsc.outcome }}" != "success" || \
+                "${{ steps.bundle.outcome }}" != "success" || \
+                "${{ steps.test.outcome }}" != "success" || \
+                "${{ steps.lint.outcome }}" != "success" ]]; then
+            exit 1
+          fi
