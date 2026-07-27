@@ -14,5 +14,6 @@
       "@features/*": ["features/*"]
     },
   },
+  "exclude": ["dist"],
   "include": ["src/**/*.ts"]
 }
