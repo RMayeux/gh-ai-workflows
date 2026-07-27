@@ -92,6 +92,7 @@ describe('runPRMetadataWorkflow', () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
     vi.stubEnv('GITHUB_TOKEN', MOCK_INPUTS.githubToken);
+    vi.stubEnv('GITHUB_OUTPUT', '');
     vi.stubEnv('OPENAI_API_KEY', MOCK_INPUTS.apiKey);
     vi.mocked(ProviderRegistry.create).mockReturnValue(mockProvider);
     mockBuildPRContext.mockResolvedValue({
