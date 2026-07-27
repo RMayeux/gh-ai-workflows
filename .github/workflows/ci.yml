@@ -74,9 +74,13 @@ jobs:
             echo "$(emoji ${{ steps.tsc.outcome }}) TypeScript compilation clean (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
             echo "$(emoji ${{ steps.bundle.outcome }}) All bundles built successfully (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
             R="${{ steps.test.outputs.result }}"
-            NUMS=($(echo "$R" | grep -oE '[0-9]+'))
-            P=${NUMS[0]}
-            F=$(echo "$R" | grep -q "failed" && echo "${NUMS[1]}" || echo 0)
+            if echo "$R" | grep -q "|"; then
+              F=$(echo "$R" | sed 's/|.*//' | grep -oE '[0-9]+')
+              P=$(echo "$R" | sed 's/.*|//' | grep -oE '[0-9]+' | head -1)
+            else
+              P=$(echo "$R" | grep -oE '[0-9]+' | head -1)
+              F=0
+            fi
             [[ "$F" == 0 ]] && echo "$(emoji ${{ steps.test.outcome }}) ${P} tests passed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md || \
               echo "❌ ${P} passed, ${F} failed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
             echo "$(emoji ${{ steps.lint.outcome }}) Lint rules satisfied (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
