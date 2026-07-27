@@ -36,7 +36,7 @@ jobs:
           START=$(date +%s)
           pnpm test > /tmp/test_output.txt 2>&1 || true
           cat /tmp/test_output.txt
-          SUMMARY=$(grep -E '(Tests|tests) +[0-9]+' /tmp/test_output.txt | tail -1 | sed 's/^[[:space:]]*//' || echo '')
+          SUMMARY=$(grep -E '^[[:space:]]*Tests[[:space:]]+[0-9]+' /tmp/test_output.txt | sed 's/^[[:space:]]*//' || echo '')
           echo "result=${SUMMARY:-done}" >> "$GITHUB_OUTPUT"
           echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
