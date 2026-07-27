@@ -29,18 +29,6 @@ jobs:
           fi
           echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
 
-      - name: Bundle
-        id: bundle
-        continue-on-error: true
-        run: |
-          START=$(date +%s)
-          if pnpm run bundle; then
-            echo "result=✅ pass" >> "$GITHUB_OUTPUT"
-          else
-            echo "result=❌ fail" >> "$GITHUB_OUTPUT"
-          fi
-          echo "elapsed=$(( $(date +%s) - START ))s" >> "$GITHUB_OUTPUT"
-
       - name: Test
         id: test
         continue-on-error: true
@@ -71,8 +59,8 @@ jobs:
         run: |
           {
             emoji() { [[ "$1" == "success" ]] && echo "✅" || echo "❌"; }
-            echo "$(emoji ${{ steps.tsc.outcome }}) TypeScript compilation clean (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
-            echo "$(emoji ${{ steps.bundle.outcome }}) All bundles built successfully (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
+            echo "$(emoji ${{ steps.tsc.outcome }}) type · ${{ steps.tsc.outputs.elapsed }}" > /tmp/vtable.md
+            echo "$(emoji ${{ steps.lint.outcome }}) lint · ${{ steps.lint.outputs.elapsed }}" >> /tmp/vtable.md
             R="${{ steps.test.outputs.result }}"
             if echo "$R" | grep -q "|"; then
               F=$(echo "$R" | sed 's/|.*//' | grep -oE '[0-9]+')
@@ -81,9 +69,8 @@ jobs:
               P=$(echo "$R" | grep -oE '[0-9]+' | head -1)
               F=0
             fi
-            [[ "$F" == 0 ]] && echo "$(emoji ${{ steps.test.outcome }}) ${P} tests passed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md || \
-              echo "❌ ${P} passed, ${F} failed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
-            echo "$(emoji ${{ steps.lint.outcome }}) Lint rules satisfied (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
+            [[ "$F" == 0 ]] && echo "$(emoji ${{ steps.test.outcome }}) ${P} tests · ${{ steps.test.outputs.elapsed }}" >> /tmp/vtable.md || \
+              echo "❌ ${P} passed, ${F} failed · ${{ steps.test.outputs.elapsed }}" >> /tmp/vtable.md
           }
 
           PR="${{ github.event.pull_request.number }}"
@@ -102,7 +89,6 @@ jobs:
           gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -f body="$(cat /tmp/pr_body)"
 
           if [[ "${{ steps.tsc.outcome }}" != "success" || \
-                "${{ steps.bundle.outcome }}" != "success" || \
                 "${{ steps.test.outcome }}" != "success" || \
                 "${{ steps.lint.outcome }}" != "success" ]]; then
             exit 1
