@@ -9,9 +9,10 @@ Before exploring code structure, query the graph: `/graphify query "<q>"` or `/g
 ## After every task — non-negotiable
 Run these in order before marking any task done. If any step fails, fix it. Do not output a final diff until all four pass. Do not ask whether to run them. Always run them.
 1. `pnpm tsc --noEmit`
-2. `pnpm run bundle`
-3. `pnpm test`
-4. `pnpm lint`
+2. `pnpm test`
+3. `pnpm lint`
+
+Bundle handled by `pnpm bundle` inside `.github/composites/setup/action.yml` (runs at CI setup). After a local task, bundle is only needed if you changed feature code — `pnpm run bundle` (or `pnpm run build:<feature>` for one).
 
 ## TypeScript
 Strict always on. No `any`, no `!` (unless provably safe + comment), no `@ts-ignore`/`@ts-expect-error` without linked TODO. ESM only, no `require()`. No implicit returns. Prefer `type` over `interface`.
