@@ -73,8 +73,12 @@ jobs:
             emoji() { [[ "$1" == "success" ]] && echo "✅" || echo "❌"; }
             echo "$(emoji ${{ steps.tsc.outcome }}) TypeScript compilation clean (${{ steps.tsc.outputs.elapsed }})" > /tmp/vtable.md
             echo "$(emoji ${{ steps.bundle.outcome }}) All bundles built successfully (${{ steps.bundle.outputs.elapsed }})" >> /tmp/vtable.md
-            TC=$(echo "${{ steps.test.outputs.result }}" | grep -oE '[0-9]+' | tail -1)
-            echo "$(emoji ${{ steps.test.outcome }}) ${TC} tests passed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
+            R="${{ steps.test.outputs.result }}"
+            NUMS=($(echo "$R" | grep -oE '[0-9]+'))
+            P=${NUMS[0]}
+            F=$(echo "$R" | grep -q "failed" && echo "${NUMS[1]}" || echo 0)
+            [[ "$F" == 0 ]] && echo "$(emoji ${{ steps.test.outcome }}) ${P} tests passed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md || \
+              echo "❌ ${P} passed, ${F} failed (${{ steps.test.outputs.elapsed }})" >> /tmp/vtable.md
             echo "$(emoji ${{ steps.lint.outcome }}) Lint rules satisfied (${{ steps.lint.outputs.elapsed }})" >> /tmp/vtable.md
           }
 
