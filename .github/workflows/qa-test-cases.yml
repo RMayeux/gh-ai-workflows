@@ -2,8 +2,6 @@ name: 'AI QA Test Cases'
 
 on:
   workflow_dispatch:
-  pull_request:
-    types: [opened]
 
 jobs:
   generate-qa:

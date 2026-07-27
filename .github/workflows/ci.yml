@@ -42,12 +42,24 @@ jobs:
           fi
           echo "elapsed=$(( $(date +%s) - start ))s" >> "$GITHUB_OUTPUT"
 
+      - name: Bundle
+        id: bundle
+        continue-on-error: true
+        run: |
+          start=$(date +%s)
+          if pnpm run bundle; then
+            echo "result=pass" >> "$GITHUB_OUTPUT"
+          else
+            echo "result=fail" >> "$GITHUB_OUTPUT"
+          fi
+          echo "elapsed=$(( $(date +%s) - start ))s" >> "$GITHUB_OUTPUT"
+
       - name: Vitest
         id: test
         continue-on-error: true
         run: |
           start=$(date +%s)
-          pnpm test --reporter=json > /tmp/vitest.json 2>/tmp/vitest.log
+          pnpm test --reporter=json > /tmp/vitest.json 2>/tmp/vitest.log || true
           cat /tmp/vitest.log
           node -e "
             const r = JSON.parse(require('fs').readFileSync('/tmp/vitest.json', 'utf8'));
@@ -79,6 +91,10 @@ jobs:
               "$(emoji ${{ steps.lint.outcome }})" \
               "lint" \
               "${{ steps.lint.outputs.elapsed }}"
+            printf '%-1s %-6s %s\n' \
+              "$(emoji ${{ steps.bundle.outcome }})" \
+              "bundle" \
+              "${{ steps.bundle.outputs.elapsed }}"
             printf '%-1s %-6s %s  (%s)\n' \
               "$(emoji ${{ steps.test.outcome }})" \
               "tests" \
@@ -112,4 +128,5 @@ jobs:
         run: |
           [[ "${{ steps.typecheck.outcome }}" == "success" && \
              "${{ steps.lint.outcome }}" == "success" && \
+             "${{ steps.bundle.outcome }}" == "success" && \
              "${{ steps.test.outcome }}" == "success" ]]
