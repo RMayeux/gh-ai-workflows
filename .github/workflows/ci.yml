@@ -58,9 +58,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           {
-            emoji() { [[ "$1" == "success" ]] && echo "✅" || echo "❌"; }
-            echo "$(emoji ${{ steps.tsc.outcome }}) type · ${{ steps.tsc.outputs.elapsed }}" > /tmp/vtable.md
-            echo "$(emoji ${{ steps.lint.outcome }}) lint · ${{ steps.lint.outputs.elapsed }}" >> /tmp/vtable.md
+            mark() { [[ "$1" == "success" ]] && echo "✓" || echo "✗"; }
+            printf '%s %-5s %s\n' "$(mark ${{ steps.tsc.outcome }})" "type" "${{ steps.tsc.outputs.elapsed }}" > /tmp/vtable.md
+            printf '%s %-5s %s\n' "$(mark ${{ steps.lint.outcome }})" "lint" "${{ steps.lint.outputs.elapsed }}" >> /tmp/vtable.md
             R="${{ steps.test.outputs.result }}"
             if echo "$R" | grep -q "|"; then
               F=$(echo "$R" | sed 's/|.*//' | grep -oE '[0-9]+')
@@ -69,8 +69,8 @@ jobs:
               P=$(echo "$R" | grep -oE '[0-9]+' | head -1)
               F=0
             fi
-            [[ "$F" == 0 ]] && echo "$(emoji ${{ steps.test.outcome }}) ${P} tests · ${{ steps.test.outputs.elapsed }}" >> /tmp/vtable.md || \
-              echo "❌ ${P} passed, ${F} failed · ${{ steps.test.outputs.elapsed }}" >> /tmp/vtable.md
+            C=$([[ "$F" == 0 ]] && echo "$P" || echo "$F")
+            printf '%s %-5s %s  (%s)\n' "$(mark ${{ steps.test.outcome }})" "tests" "${{ steps.test.outputs.elapsed }}" "$C" >> /tmp/vtable.md
           }
 
           PR="${{ github.event.pull_request.number }}"
@@ -84,7 +84,9 @@ jobs:
           fi
           echo '## Verification' >> /tmp/pr_body
           echo '' >> /tmp/pr_body
+          echo '```' >> /tmp/pr_body
           cat /tmp/vtable.md >> /tmp/pr_body
+          echo '```' >> /tmp/pr_body
 
           gh api -X PATCH "/repos/${{ github.repository }}/pulls/${PR}" -f body="$(cat /tmp/pr_body)"
 
